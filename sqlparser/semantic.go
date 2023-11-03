@@ -1,7 +1,5 @@
 package sqlparser
 
-import "fmt"
-
 type Column struct {
 	Name          string
 	GroupFunction string
@@ -26,6 +24,16 @@ type Statement struct {
 	BooleanOp string
 }
 
-func (stmt *Statement) ToMongoFind() string {
-	return fmt.Sprintln(*stmt)
+func (stmt *Statement) IsAggregate() bool {
+	if stmt.JoinTable != "" {
+		return true
+	}
+
+	for _, col := range stmt.SelectColumn {
+		if col.GroupFunction != "" {
+			return true
+		}
+	}
+
+	return false
 }

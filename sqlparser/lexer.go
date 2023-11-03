@@ -25,7 +25,7 @@ func NewLexer(rd io.Reader) *Lexer {
 
 func (l *Lexer) Lex() bool {
 	l.Token = l.s.Scan()
-	l.Value = strings.ToUpper(l.s.TokenText())
+	l.Value = l.s.TokenText()
 
 	if l.Value == "<" {
 		p := l.s.Peek()
@@ -33,13 +33,14 @@ func (l *Lexer) Lex() bool {
 			l.Token = l.s.Scan()
 			l.Value += l.s.TokenText()
 		}
-	}
-	if l.Value == ">" {
+	} else if l.Value == ">" {
 		p := l.s.Peek()
 		if p == '=' {
 			l.Token = l.s.Scan()
 			l.Value += l.s.TokenText()
 		}
+	} else if strings.Contains(l.Value, "'") {
+		l.Token = scanner.Ident
 	}
 
 	return l.Token != scanner.EOF

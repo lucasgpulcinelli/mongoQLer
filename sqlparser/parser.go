@@ -42,7 +42,7 @@ func Parse(sql string) (*Statement, error) {
 // SelectStmt -> <SELECT> Columns
 // Columns -> ColumnOrGroup { <,> ColumnOrGroup } | <*>
 func SelectStmt(l *Lexer, stmt *Statement) bool {
-	if l.Value != "SELECT" || !l.Lex() {
+	if strings.ToUpper(l.Value) != "SELECT" || !l.Lex() {
 		return false
 	}
 
@@ -56,7 +56,7 @@ func SelectStmt(l *Lexer, stmt *Statement) bool {
 	}
 
 	for {
-		if l.Value == "FROM" {
+		if strings.ToUpper(l.Value) == "FROM" {
 			return true
 		}
 
@@ -102,7 +102,7 @@ func ColumnOrGroup(l *Lexer, stmt *Statement) bool {
 
 // FromStmt -> <FROM> <ID>
 func FromStmt(l *Lexer, stmt *Statement) bool {
-	if l.Value != "FROM" || !l.Lex() {
+	if strings.ToUpper(l.Value) != "FROM" || !l.Lex() {
 		return false
 	}
 
@@ -117,7 +117,7 @@ func FromStmt(l *Lexer, stmt *Statement) bool {
 
 // OptJoinStmt -> <JOIN> <ID> <ON> <ID> <=> <ID> | eps
 func OptJoinStmt(l *Lexer, stmt *Statement) bool {
-	if l.Value != "JOIN" {
+	if strings.ToUpper(l.Value) != "JOIN" {
 		return true
 	}
 
@@ -131,7 +131,7 @@ func OptJoinStmt(l *Lexer, stmt *Statement) bool {
 
 	stmt.JoinTable = l.Value
 
-	if !l.Lex() || l.Value != "ON" || !l.Lex() {
+	if !l.Lex() || strings.ToUpper(l.Value) != "ON" || !l.Lex() {
 		return false
 	}
 
@@ -148,7 +148,7 @@ func OptJoinStmt(l *Lexer, stmt *Statement) bool {
 
 // OptWhereStmt -> <WHERE> BoolExpr | eps
 func OptWhereStmt(l *Lexer, stmt *Statement) bool {
-	if l.Value != "WHERE" {
+	if strings.ToUpper(l.Value) != "WHERE" {
 		return true
 	}
 
