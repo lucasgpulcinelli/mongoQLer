@@ -2,6 +2,7 @@ package sqlparser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"text/scanner"
 )
@@ -37,6 +38,28 @@ func Parse(sql string) (*Statement, error) {
 	}
 
 	return stmt, nil
+}
+
+// ParseBoolExpr -> BoolExpr
+func ParseBoolExpr(sql string) (BooleanExpression, error) {
+	l := NewLexer(strings.NewReader(sql))
+
+	var be BooleanExpression
+
+	if !l.Lex() {
+		return nil, fmt.Errorf("failed parsing any SQL text")
+	}
+
+	if !BoolExpr(l, &be) {
+		return nil, fmt.Errorf("failed parsing boolean expression")
+	}
+
+	if l.Lex() {
+		return nil, fmt.Errorf("failed parsing SQL end: there is trailing input")
+	}
+
+	return be, nil
+
 }
 
 // SelectStmt -> <SELECT> Columns
@@ -149,6 +172,7 @@ func OptJoinStmt(l *Lexer, stmt *Statement) bool {
 // OptWhereStmt -> <WHERE> BoolExpr | eps
 func OptWhereStmt(l *Lexer, stmt *Statement) bool {
 	if strings.ToUpper(l.Value) != "WHERE" {
+		stmt.Where = EmptyComparision{}
 		return true
 	}
 
@@ -156,72 +180,198 @@ func OptWhereStmt(l *Lexer, stmt *Statement) bool {
 		return false
 	}
 
-	stmt.Where = make([]Comparision, 0)
-	return BoolExpr(l, stmt)
+	return BoolExpr(l, &stmt.Where)
 }
 
 // BoolExpr -> CompExpr { BoolOp CompExpr }
 // BoolOp -> <AND> | <OR>
-func BoolExpr(l *Lexer, stmt *Statement) bool {
-	if !CompExpr(l, stmt) {
+func BoolExpr(l *Lexer, be *BooleanExpression) bool {
+	var comp BooleanExpression
+
+	if !CompExpr(l, &comp) {
 		return false
 	}
 
+	if l.Value == ";" || l.Value == ")" {
+		*be = comp
+		return true
+	}
+
+	bcomposite := &BooleanComposite{}
+	bcomposite.SubExpr = make([]BooleanExpression, 1)
+	bcomposite.SubExpr[0] = comp
+
 	for {
-		if l.Value == ";" {
+		if bcomposite.BoolOp == "" {
+			bcomposite.BoolOp = l.Value
+		}
+
+		if bcomposite.BoolOp != l.Value || !l.Lex() {
+			return false
+		}
+
+		if !CompExpr(l, &comp) {
+			return false
+		}
+
+		bcomposite.SubExpr = append(bcomposite.SubExpr, comp)
+
+		if l.Value == ";" || l.Value == ")" {
+			*be = bcomposite
 			return true
-		}
-
-		if stmt.BooleanOp == "" {
-			stmt.BooleanOp = l.Value
-		}
-
-		if stmt.BooleanOp != l.Value || !l.Lex() {
-			return false
-		}
-
-		if !CompExpr(l, stmt) {
-			return false
 		}
 	}
 }
 
+func GetValue(s string) any {
+	if strings.ToUpper(s) == "NULL" {
+		return nil
+	}
+
+	v, err := strconv.ParseInt(s, 0, 0)
+	if err == nil {
+		return v
+	}
+
+
+	if s[0] == '\'' || s[0] == '"' {
+		return s[1 : len(s)-1]
+	}
+
+	return s
+}
+
 // CompExpr -> <ID> CompOp <ID>
-func CompExpr(l *Lexer, stmt *Statement) bool {
-	c := Comparision{}
+// CompExpr -> <ID> IS (<NOT> | eps) <NULL>
+func SimpleCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
+	comp := &Comparision{}
+	comp.Id = id
 
-	if l.Token != scanner.Ident && l.Token != scanner.Int {
-		return false
+	if strings.ToUpper(l.Value) == "IS" {
+		if !l.Lex() {
+			return false
+		}
+
+		if strings.ToUpper(l.Value) == "NOT" {
+			comp.Op = "<>"
+			if !l.Lex() {
+				return false
+			}
+		} else {
+			comp.Op = "="
+		}
+
+		if strings.ToUpper(l.Value) != "NULL" || !l.Lex() {
+			return false
+		}
+
+		comp.Value = nil
+	} else {
+		comp.Op = l.Value
+		if !l.Lex() || (l.Token != scanner.Ident && l.Token != scanner.Int) {
+			return false
+		}
+		comp.Value = GetValue(l.Value)
+
+		if !l.Lex() {
+			return false
+		}
 	}
 
-	c.Left = l.Value
-
-	if !l.Lex() {
-		return false
-	}
-
-	if !(l.Value == ">" || l.Value == ">=" || l.Value == "<" ||
-		l.Value == "<=" || l.Value == "=" || l.Value == "<>") {
-		return false
-	}
-
-	c.Op = l.Value
-
-	if !l.Lex() {
-		return false
-	}
-
-	if l.Token != scanner.Ident && l.Token != scanner.Int {
-		return false
-	}
-
-	c.Right = l.Value
-
-	if !l.Lex() {
-		return false
-	}
-
-	stmt.Where = append(stmt.Where, c)
-
+	*be = comp
 	return true
+}
+
+// CompExpr -> <ID> (<NOT> | eps) <IN> <(> ValueList <)>
+// ValueList -> <ID> { <,> <ID> }
+func InCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
+	incomp := &InComparision{}
+	incomp.Id = id
+	incomp.Values = make([]any, 1)
+
+	if strings.ToUpper(l.Value) == "NOT" {
+		incomp.Not = true
+		if !l.Lex() {
+			return false
+		}
+	}
+
+	if strings.ToUpper(l.Value) != "IN" || !l.Lex() ||
+		l.Value != "(" || !l.Lex() {
+		return false
+	}
+
+	if !(l.Token == scanner.Ident || l.Token == scanner.Int) {
+		return false
+	}
+
+	incomp.Values[0] = GetValue(l.Value)
+
+	if !l.Lex() {
+		return false
+	}
+
+	for l.Token == ',' {
+		if !l.Lex() {
+			return false
+		}
+
+		if !(l.Token == scanner.Ident || l.Token == scanner.Int) {
+			return false
+		}
+
+		incomp.Values = append(incomp.Values, GetValue(l.Value))
+
+		if !l.Lex() {
+			return false
+		}
+	}
+
+	if l.Value != ")" || !l.Lex() {
+		return false
+	}
+
+	*be = incomp
+	return true
+}
+
+// CompExpr -> <(> BoolExpr <)>
+func CompExpr(l *Lexer, be *BooleanExpression) bool {
+
+	if l.Token == '(' {
+		if !l.Lex() {
+			return false
+		}
+
+		if !BoolExpr(l, be) {
+			return false
+		}
+
+		if l.Token != ')' || !l.Lex() {
+			return false
+		}
+
+		return true
+	}
+
+	if l.Token != scanner.Ident && l.Token != scanner.Int {
+		return false
+	}
+
+	id := l.Value
+
+	if !l.Lex() {
+		return false
+	}
+
+	if l.Value == ">" || l.Value == ">=" || l.Value == "<" || l.Value == "<=" ||
+		l.Value == "=" || l.Value == "<>" || l.Value == "IS" {
+		return SimpleCompExpr(l, be, id)
+	}
+
+	if l.Value == "NOT" || l.Value == "IN" {
+		return InCompExpr(l, be, id)
+	}
+
+	return false
 }

@@ -14,8 +14,8 @@ import (
 var (
 	findAggregateButton *widget.Button
 	executeButton       *widget.Button
-	sqlEntry            *widget.Entry
-	mongoEntry          *widget.Entry
+	sqlFAEntry          *widget.Entry
+	mongoFAEntry        *widget.Entry
 )
 
 func bsonToString(a bson.D) string {
@@ -29,7 +29,7 @@ func bsonToString(a bson.D) string {
 }
 
 func findAggregateButtonFunc() {
-	stmt, err := sqlparser.Parse(sqlEntry.Text)
+	stmt, err := sqlparser.Parse(sqlFAEntry.Text)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return
@@ -51,7 +51,7 @@ func findAggregateButtonFunc() {
 			out = out[:len(out)-2]
 		}
 
-		mongoEntry.SetText(
+		mongoFAEntry.SetText(
 			fmt.Sprint("db.", stmt.FromTable, ".aggregate(", out, "\n])"),
 		)
 	} else {
@@ -64,7 +64,7 @@ func findAggregateButtonFunc() {
 		findJson := bsonToString(find)
 		selectionJson := bsonToString(selection)
 
-		mongoEntry.SetText(
+		mongoFAEntry.SetText(
 			fmt.Sprint("db.", stmt.FromTable, ".find(\n", findJson, ",\n",
 				selectionJson, "\n)"),
 		)
@@ -78,10 +78,11 @@ func newFindAggregate() fyne.CanvasObject {
 	findAggregateButton = widget.NewButton("convert", findAggregateButtonFunc)
 	executeButton = widget.NewButton("execute", executeButtonFunc)
 
-	sqlEntry = widget.NewMultiLineEntry()
-	sqlEntry.SetText("SELECT * FROM DUAL;")
+	sqlFAEntry = widget.NewMultiLineEntry()
+	sqlFAEntry.SetText("SELECT * FROM DUAL;")
 
-	mongoEntry = widget.NewMultiLineEntry()
+	mongoFAEntry = widget.NewMultiLineEntry()
+	mongoFAEntry.SetPlaceHolder("click convert to convert your query")
 
 	return container.NewBorder(
 		container.NewCenter(
@@ -90,6 +91,6 @@ func newFindAggregate() fyne.CanvasObject {
 		container.NewCenter(container.NewHBox(findAggregateButton, executeButton)),
 		nil,
 		nil,
-		container.NewHSplit(sqlEntry, mongoEntry),
+		container.NewHSplit(sqlFAEntry, mongoFAEntry),
 	)
 }

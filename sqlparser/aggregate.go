@@ -76,7 +76,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 
 	result := mongo.Pipeline{}
 
-	where, err := stmt.GetFullWhere()
+	where, err := stmt.Where.GetBson()
 	if err != nil {
 		return mongo.Pipeline{}, err
 	}
