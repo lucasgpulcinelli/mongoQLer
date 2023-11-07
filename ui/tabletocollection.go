@@ -24,8 +24,25 @@ func tableCollectionButtonFunc() {
 		return
 	}
 
+	embedRefs := []oracleManager.Reference{}
+	for i, ref := range referencesNow {
+		checkBox, ok := embedSelections.Objects[i].(*widget.Check)
+		if !ok {
+			errorPopUp(fmt.Errorf("embedSelections has wrong widget types"),
+				mainWindow.Canvas(),
+			)
+			return
+		}
+
+		if !checkBox.Checked {
+			continue
+		}
+
+		embedRefs = append(embedRefs, ref)
+	}
+
 	docs, err := tableToCollection.GetCollection(oracleConn,
-		tcSelection.Selected, referencesNow,
+		tcSelection.Selected, embedRefs,
 	)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())

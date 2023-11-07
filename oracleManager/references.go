@@ -5,16 +5,18 @@ import (
 )
 
 type Reference struct {
-	ConstraintName  string
-	TableReferencer string
-	TableReferenced string
+	ConstraintName   string
+	TableReferencer  string
+	ColumnReferencer []string
+	TableReferenced  string
+	ColumnReferenced []string
 }
 
 func GetReferences(db *sql.DB) ([]Reference, error) {
 	s := `
   SELECT C.CONSTRAINT_NAME, 
-    CC.TABLE_NAME AS TABLE_REFERENCER, 
-    RCC.TABLE_NAME AS TABLE_REFERENCED
+    CC.TABLE_NAME AS TABLE_REFERENCER, CC.COLUMN_NAME AS COLUMN_REFERENCER,
+    RCC.TABLE_NAME AS TABLE_REFERENCED, RCC.COLUMN_NAME AS COLUMN_REFERENCED
   FROM USER_CONSTRAINTS C
     JOIN USER_CONS_COLUMNS CC ON
       CC.CONSTRAINT_NAME = C.CONSTRAINT_NAME
@@ -31,15 +33,28 @@ func GetReferences(db *sql.DB) ([]Reference, error) {
 	}
 
 	ret := []Reference{}
+	prevCn := ""
 	for rows.Next() {
-		var cn, tr, td string
+		var cn, tr, cr, td, cd string
 
-		err = rows.Scan(&cn, &tr, &td)
+		err = rows.Scan(&cn, &tr, &cr, &td, &cd)
 		if err != nil {
 			return nil, err
 		}
 
-		ret = append(ret, Reference{cn, tr, td})
+		if prevCn != cn {
+			prevCn = cn
+			ret = append(ret, Reference{cn, tr, []string{cr}, td, []string{cd}})
+			continue
+		}
+
+		ret[len(ret)-1].ColumnReferencer = append(
+			ret[len(ret)-1].ColumnReferencer, cr,
+		)
+
+		ret[len(ret)-1].ColumnReferenced = append(
+			ret[len(ret)-1].ColumnReferenced, cd,
+		)
 	}
 
 	err = rows.Close()
