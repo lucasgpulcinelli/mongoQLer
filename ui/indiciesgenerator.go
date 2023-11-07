@@ -29,9 +29,9 @@ func indiciesGeneratorButtonFunc() {
 			bs = append(bs, bson.E{col, 1})
 		}
 
-		s += fmt.Sprintf("db.%s.createIndex(%s, {unique: true})\n\n", 
-      un.Table, bsonToString(bs),
-    )
+		s += fmt.Sprintf("db.%s.createIndex(%s, {unique: true})\n\n",
+			un.Table, bsonToString(bs),
+		)
 	}
 
 	mongoIGEntry.SetText(s)

@@ -233,7 +233,6 @@ func GetValue(s string) any {
 		return v
 	}
 
-
 	if s[0] == '\'' || s[0] == '"' {
 		return s[1 : len(s)-1]
 	}

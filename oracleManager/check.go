@@ -25,10 +25,10 @@ func GetChecks(db *sql.DB) ([]CheckEntry, error) {
 
 	for rows.Next() {
 		tableName, searchCondition := "", ""
-    err = rows.Scan(&tableName, &searchCondition)
-    if err != nil {
-      return nil, err
-    }
+		err = rows.Scan(&tableName, &searchCondition)
+		if err != nil {
+			return nil, err
+		}
 
 		if tableName == tableNamePrev {
 			result[len(result)-1].Check += " AND (" + searchCondition + ")"
@@ -48,9 +48,9 @@ func GetChecks(db *sql.DB) ([]CheckEntry, error) {
 		return nil, err
 	}
 
-  for i := range result {
-    result[i].Check += ";"
-  }
+	for i := range result {
+		result[i].Check += ";"
+	}
 
-  return result, nil
+	return result, nil
 }

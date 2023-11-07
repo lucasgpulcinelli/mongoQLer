@@ -42,9 +42,9 @@ func (l *Lexer) Lex() bool {
 	} else if strings.Contains(l.Value, "'") {
 		l.Token = scanner.Ident
 	} else if strings.Contains(l.Value, "\"") {
-    l.Token = scanner.Ident
-    l.Value = l.Value[1:len(l.Value)-1]
-  }
+		l.Token = scanner.Ident
+		l.Value = l.Value[1 : len(l.Value)-1]
+	}
 
 	return l.Token != scanner.EOF
 }

@@ -26,11 +26,11 @@ func GetUniques(db *sql.DB) ([]UniqueEntry, error) {
 
 	for rows.Next() {
 		tableName, columnName := "", ""
-		
-    err = rows.Scan(&tableName, &columnName)
-    if err != nil {
-      return nil, err
-    }
+
+		err = rows.Scan(&tableName, &columnName)
+		if err != nil {
+			return nil, err
+		}
 
 		if tableName == tableNamePrev {
 			result[len(result)-1].Columns = append(
