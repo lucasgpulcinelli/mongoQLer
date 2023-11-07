@@ -31,7 +31,7 @@ func NewMainWindow(a fyne.App) fyne.Window {
 	mainWindow = a.NewWindow("Oracle to Mongo Translator")
 
 	tabs := container.NewAppTabs(
-		container.NewTabItem("Table to Collection", widget.NewLabel("Hello, World!")),
+		container.NewTabItem("Table to Collection", newTableToCollection()),
 		container.NewTabItem("Query to Collection", widget.NewLabel("Hello, World!")),
 		container.NewTabItem("Indicies Generator", newIndiciesGenerator()),
 		container.NewTabItem("Validator Generator", newCheckGenerator()),

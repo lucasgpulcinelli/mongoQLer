@@ -104,6 +104,28 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
+		tables, err := oracleManager.GetTables(oracleConn)
+		if err != nil {
+			errorPopUp(err, w.Canvas())
+			return
+		}
+
+		tcSelection.SetOptions(tables)
+
+		referencesNow, err = oracleManager.GetReferences(oracleConn)
+		if err != nil {
+			errorPopUp(err, w.Canvas())
+			return
+		}
+
+		var constraint string
+		for _, ref := range referencesNow {
+			if constraint != ref.ConstraintName {
+				constraint = ref.ConstraintName
+				embedSelections.Add(widget.NewCheck(constraint, func(_ bool) {}))
+			}
+		}
+
 		w.Close()
 		wMain.Show()
 	})
