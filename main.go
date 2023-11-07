@@ -15,6 +15,7 @@ func main() {
 	wLogin.Show()
 	a.Run()
 
+	// during the exit phase of the application, close the connections
 	orConn, monConn := ui.GetConnections()
 	if orConn != nil {
 		err := orConn.Close()

@@ -19,11 +19,14 @@ var (
 	referencesNow         []oracleManager.Reference
 )
 
+// tableCollectionButtonFunc executes the table to collection button
+// functionality.
 func tableCollectionButtonFunc() {
 	if referencesNow == nil || tcSelection.Selected == "" {
 		return
 	}
 
+	// first, see wich references should be embedded based on the check boxes
 	embedRefs := []oracleManager.Reference{}
 	for i, ref := range referencesNow {
 		checkBox, ok := embedSelections.Objects[i].(*widget.Check)
@@ -41,12 +44,14 @@ func tableCollectionButtonFunc() {
 		embedRefs = append(embedRefs, ref)
 	}
 
+	// execute the main query to pass to the GetCollection function
 	rows, err := oracleConn.Query("SELECT * FROM " + tcSelection.Selected)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return
 	}
 
+	// get all documents to be added to the new collection
 	docs, err := tableToCollection.GetCollection(oracleConn, rows,
 		tcSelection.Selected, embedRefs,
 	)
@@ -55,12 +60,14 @@ func tableCollectionButtonFunc() {
 		return
 	}
 
+	// close the query, we are done by now
 	err = rows.Close()
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return
 	}
 
+	// format and print every new document to the mongo output text entry
 	s := fmt.Sprintf("db.%s.insertMany([\n", tcSelection.Selected)
 	i := 0
 	for _, doc := range docs {
@@ -75,6 +82,11 @@ func tableCollectionButtonFunc() {
 	mongoTCEntry.SetText(s)
 }
 
+// newTableToCollection creates the main object UI that converts an oracle
+// table to a mongoDB collection. It takes as input a table and all references
+// that should be embedded rather than linked, and returns in the mongoTCEntry
+// a mongosh command to insert a new collection with all the data gathered from
+// oracle.
 func newTableToCollection() fyne.CanvasObject {
 	l := widget.NewLabel("convert an oracle table to a mongoDB collection")
 	l2 := widget.NewLabel("references to embed")
@@ -86,6 +98,8 @@ func newTableToCollection() fyne.CanvasObject {
 	mongoTCEntry = widget.NewMultiLineEntry()
 	mongoTCEntry.SetPlaceHolder("click convert to get your collection")
 
+	// initialise the table selection as empty, the login flow will add the
+	// tables after the connection is created.
 	tcSelection = widget.NewSelect(
 		[]string{},
 		func(_ string) {},

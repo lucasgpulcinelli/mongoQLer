@@ -18,11 +18,14 @@ var (
 	queryNameEntry *widget.Entry
 )
 
+// queryButtonFunc executes the query to collection button functionality
 func queryButtonFunc() {
 	if queryNameEntry.Text == "" {
 		return
 	}
 
+	// first, remove the ; from the query because oracleConn.Query cannot have
+	// one
 	query := sqlQCEntry.Text
 	if i := strings.Index(query, ";"); i != -1 {
 		query = query[:i]
@@ -34,6 +37,7 @@ func queryButtonFunc() {
 		return
 	}
 
+	// generate the collection from the query
 	docs, err := tableToCollection.GetCollection(oracleConn, rows, "",
 		[]oracleManager.Reference{},
 	)
@@ -48,6 +52,7 @@ func queryButtonFunc() {
 		return
 	}
 
+	// and write the result in the mongoQCEntry
 	s := fmt.Sprintf("db.%s.insertMany([\n", queryNameEntry.Text)
 	i := 0
 	for _, doc := range docs {
@@ -62,6 +67,9 @@ func queryButtonFunc() {
 	mongoQCEntry.SetText(s)
 }
 
+// newQueryToCollection generates the main query to collection UI. It takes an
+// SQL query and, given an output collection name, generates the mongoDB data
+// to be inserted based on the result of running the query in oracle.
 func newQueryToCollection() fyne.CanvasObject {
 	queryButton = widget.NewButton("generate", queryButtonFunc)
 

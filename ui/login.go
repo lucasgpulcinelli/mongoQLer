@@ -21,10 +21,17 @@ var (
 	mongoConn  *mongo.Database
 )
 
+// GetConnections gets both database connections. Before the login window
+// closes both connections are nil.
 func GetConnections() (*sql.DB, *mongo.Database) {
 	return oracleConn, mongoConn
 }
 
+// NewLoginWindow creates the login window for connecting with databases.
+// The main window will be activated once the login flow is complete.
+// The application uses as initial text the values from some environment
+// variables, such that if a .env file is created and sourced, it is easier to
+// rerun the application multiple times.
 func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 	w := a.NewWindow("Login to Oracle and MongoDB")
 	w.Resize(fyne.NewSize(500, 500))
@@ -78,6 +85,7 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 	}
 	mongoPass.SetText(s)
 
+	// the button that will execute the login functionality
 	b := widget.NewButton("login", func() {
 		var err error
 
@@ -85,6 +93,7 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			oracleConn.Close()
 		}
 
+		// log in to oracle
 		oracleConn, err = oracleManager.Login(oracleURL.Text, oracleUser.Text,
 			oraclePass.Text,
 		)
@@ -97,6 +106,7 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			mongoConn.Client().Disconnect(context.TODO())
 		}
 
+		// log in to mongo
 		mongoConn, err = mongoManager.Login(mongoURL.Text, mongoDBName.Text,
 			mongoUser.Text, mongoPass.Text,
 		)
@@ -105,14 +115,19 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
+		// initialise some oracle metadata:
+
+		// get all table names
 		tables, err := oracleManager.GetTables(oracleConn)
 		if err != nil {
 			errorPopUp(err, w.Canvas())
 			return
 		}
 
+		// and set them as options in one of the tabs
 		tcSelection.SetOptions(tables)
 
+		// get all foreign key references
 		referencesNow, err = oracleManager.GetReferences(oracleConn)
 		if err != nil {
 			errorPopUp(err, w.Canvas())
@@ -123,10 +138,12 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 		for _, ref := range referencesNow {
 			if constraint != ref.ConstraintName {
 				constraint = ref.ConstraintName
+				// and set them as checkbox options in one of the tabs
 				embedSelections.Add(widget.NewCheck(constraint, func(_ bool) {}))
 			}
 		}
 
+		// get all primary keys and prepare the key manager
 		err = keyManager.InitPrimaryKeys(oracleConn)
 		if err != nil {
 			errorPopUp(err, w.Canvas())

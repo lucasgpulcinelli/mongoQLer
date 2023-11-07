@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	mainWindow fyne.Window
+	mainWindow fyne.Window // the main ui window
 )
 
+// errorPopUp shows an error to a fyne canvas as a popup.
 func errorPopUp(err error, c fyne.Canvas) {
 	content := container.NewVBox(widget.NewLabel(fmt.Sprintf("error: %v", err)))
 
@@ -27,9 +28,11 @@ func errorPopUp(err error, c fyne.Canvas) {
 	pop.Show()
 }
 
+// NewMainWindow creates the main application window.
 func NewMainWindow(a fyne.App) fyne.Window {
 	mainWindow = a.NewWindow("Oracle to Mongo Translator")
 
+	// the tabbed panes for each part of the application
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Table to Collection", newTableToCollection()),
 		container.NewTabItem("Query to Collection", newQueryToCollection()),
