@@ -32,7 +32,7 @@ func NewMainWindow(a fyne.App) fyne.Window {
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Table to Collection", newTableToCollection()),
-		container.NewTabItem("Query to Collection", widget.NewLabel("Hello, World!")),
+		container.NewTabItem("Query to Collection", newQueryToCollection()),
 		container.NewTabItem("Indicies Generator", newIndiciesGenerator()),
 		container.NewTabItem("Validator Generator", newCheckGenerator()),
 		container.NewTabItem("Query to Find or Aggregate", newFindAggregate()),

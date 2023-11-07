@@ -11,14 +11,8 @@ import (
 )
 
 func GetCollection(
-	db *sql.DB, table string, embeds []oracleManager.Reference,
+	db *sql.DB, rows *sql.Rows, table string, embeds []oracleManager.Reference,
 ) ([]bson.D, error) {
-
-	s := "SELECT * FROM " + table
-	rows, err := db.Query(s)
-	if err != nil {
-		return nil, err
-	}
 
 	result := []bson.D{}
 	cols, err := rows.Columns()
@@ -44,11 +38,6 @@ func GetCollection(
 		}
 
 		result = append(result, doc)
-	}
-
-	err = rows.Close()
-	if err != nil {
-		return nil, err
 	}
 
 	return result, nil
@@ -97,7 +86,9 @@ func writeDocument(
 		}
 	}
 
-	doc = append(doc, bson.E{Key: "_id", Value: pks})
+	if len(pks) != 0 {
+		doc = append(doc, bson.E{Key: "_id", Value: pks})
+	}
 
 	return doc, nil
 }

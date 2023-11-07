@@ -41,9 +41,21 @@ func tableCollectionButtonFunc() {
 		embedRefs = append(embedRefs, ref)
 	}
 
-	docs, err := tableToCollection.GetCollection(oracleConn,
+	rows, err := oracleConn.Query("SELECT * FROM " + tcSelection.Selected)
+	if err != nil {
+		errorPopUp(err, mainWindow.Canvas())
+		return
+	}
+
+	docs, err := tableToCollection.GetCollection(oracleConn, rows,
 		tcSelection.Selected, embedRefs,
 	)
+	if err != nil {
+		errorPopUp(err, mainWindow.Canvas())
+		return
+	}
+
+	err = rows.Close()
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return

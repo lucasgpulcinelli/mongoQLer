@@ -13,7 +13,6 @@ import (
 
 var (
 	findAggregateButton *widget.Button
-	executeButton       *widget.Button
 	sqlFAEntry          *widget.Entry
 	mongoFAEntry        *widget.Entry
 )
@@ -71,12 +70,8 @@ func findAggregateButtonFunc() {
 	}
 }
 
-func executeButtonFunc() {
-}
-
 func newFindAggregate() fyne.CanvasObject {
 	findAggregateButton = widget.NewButton("convert", findAggregateButtonFunc)
-	executeButton = widget.NewButton("execute", executeButtonFunc)
 
 	sqlFAEntry = widget.NewMultiLineEntry()
 	sqlFAEntry.SetText("SELECT * FROM DUAL;")
@@ -88,7 +83,7 @@ func newFindAggregate() fyne.CanvasObject {
 		container.NewCenter(
 			widget.NewLabel("Convert an SQL query to a mongoDB find or aggregate"),
 		),
-		container.NewCenter(container.NewHBox(findAggregateButton, executeButton)),
+		findAggregateButton,
 		nil,
 		nil,
 		container.NewHSplit(sqlFAEntry, mongoFAEntry),
