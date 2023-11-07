@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -48,7 +49,7 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		}
 
 		if k != "$count" {
-			v := "$" + col.Name
+			v := "$" + keyManager.ToMongoId([]string{stmt.FromTable}, col.Name)
 			result = append(result, bson.E{col.Name, bson.D{{k, v}}})
 		}
 	}
@@ -63,8 +64,8 @@ func (stmt *Statement) GetLookup() (bson.D, error) {
 
 	return bson.D{
 		{"from", stmt.JoinTable},
-		{"localField", stmt.JoinFromAttr},
-		{"foreignField", stmt.JoinToAttr},
+		{"localField", keyManager.ToMongoId([]string{stmt.FromTable}, stmt.JoinFromAttr)},
+		{"foreignField", keyManager.ToMongoId([]string{stmt.JoinTable}, stmt.JoinToAttr)},
 		{"as", fmt.Sprintf("%s_lookup", stmt.JoinTable)},
 	}, nil
 }
@@ -76,7 +77,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 
 	result := mongo.Pipeline{}
 
-	where, err := stmt.Where.GetBson()
+	where, err := stmt.Where.GetBson([]string{stmt.FromTable, stmt.JoinTable})
 	if err != nil {
 		return mongo.Pipeline{}, err
 	}

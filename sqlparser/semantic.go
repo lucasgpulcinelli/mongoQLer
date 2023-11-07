@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -25,7 +26,7 @@ type Statement struct {
 }
 
 type BooleanExpression interface {
-	GetBson() (bson.D, error)
+	GetBson(tablesInvolved []string) (bson.D, error)
 }
 
 type EmptyComparision struct{}
@@ -61,11 +62,11 @@ func (stmt *Statement) IsAggregate() bool {
 	return false
 }
 
-func (e EmptyComparision) GetBson() (bson.D, error) {
+func (e EmptyComparision) GetBson(_ []string) (bson.D, error) {
 	return bson.D{}, nil
 }
 
-func (c *Comparision) GetBson() (bson.D, error) {
+func (c *Comparision) GetBson(tables []string) (bson.D, error) {
 	operator := ""
 
 	switch c.Op {
@@ -85,20 +86,26 @@ func (c *Comparision) GetBson() (bson.D, error) {
 		operator = "$lte"
 	}
 
-	return bson.D{{c.Id, bson.D{{operator, c.Value}}}}, nil
+	return bson.D{{
+		keyManager.ToMongoId(tables, c.Id),
+		bson.D{{operator, c.Value}},
+	}}, nil
 
 }
 
-func (ic *InComparision) GetBson() (bson.D, error) {
+func (ic *InComparision) GetBson(tables []string) (bson.D, error) {
 	operator := "$in"
 	if ic.Not {
 		operator = "$nin"
 	}
 
-	return bson.D{{ic.Id, bson.D{{operator, ic.Values}}}}, nil
+	return bson.D{{
+		keyManager.ToMongoId(tables, ic.Id),
+		bson.D{{operator, ic.Values}},
+	}}, nil
 }
 
-func (bc *BooleanComposite) GetBson() (bson.D, error) {
+func (bc *BooleanComposite) GetBson(tables []string) (bson.D, error) {
 	boolOpStr := ""
 
 	if strings.ToUpper(bc.BoolOp) == "AND" {
@@ -111,7 +118,7 @@ func (bc *BooleanComposite) GetBson() (bson.D, error) {
 
 	sexprs := make([]bson.D, 0)
 	for _, se := range bc.SubExpr {
-		bs, err := se.GetBson()
+		bs, err := se.GetBson(tables)
 		if err != nil {
 			return bson.D{}, err
 		}

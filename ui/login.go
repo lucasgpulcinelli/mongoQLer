@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"github.com/lucasgpulcinelli/mongoQLer/mongoManager"
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 
@@ -124,6 +125,12 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 				constraint = ref.ConstraintName
 				embedSelections.Add(widget.NewCheck(constraint, func(_ bool) {}))
 			}
+		}
+
+		err = keyManager.InitPrimaryKeys(oracleConn)
+		if err != nil {
+			errorPopUp(err, w.Canvas())
+			return
 		}
 
 		w.Close()

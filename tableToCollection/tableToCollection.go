@@ -3,6 +3,7 @@ package tableToCollection
 import (
 	"database/sql"
 
+	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -36,9 +37,16 @@ func GetCollection(
 			return nil, err
 		}
 
+		pks := bson.D{}
 		for i, name := range cols {
-			doc = append(doc, bson.E{Key: name, Value: vs[i]})
+			if keyManager.IsPk([]string{table}, name) {
+				pks = append(pks, bson.E{Key: name, Value: vs[i]})
+			} else {
+				doc = append(doc, bson.E{Key: name, Value: vs[i]})
+			}
 		}
+
+		doc = append(doc, bson.E{Key: "_id", Value: pks})
 
 		result = append(result, doc)
 	}

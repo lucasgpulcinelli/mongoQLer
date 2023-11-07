@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -26,7 +27,7 @@ func indiciesGeneratorButtonFunc() {
 	for _, un := range uniques {
 		bs := bson.D{}
 		for _, col := range un.Columns {
-			bs = append(bs, bson.E{col, 1})
+			bs = append(bs, bson.E{keyManager.ToMongoId([]string{un.Table}, col), 1})
 		}
 
 		s += fmt.Sprintf("db.%s.createIndex(%s, {unique: true})\n\n",
