@@ -9,6 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// GetGroup gets the document paired with the $group operator for a mongDB
+// aggregation for a Statement.
 func (stmt *Statement) GetGroup() (bson.D, error) {
 	hasGroup := false
 	for _, col := range stmt.SelectColumn {
@@ -57,6 +59,8 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 	return result, nil
 }
 
+// GetLookup gets the document paired with the $lookup operator for a mongoDB
+// aggregation for a Statement.
 func (stmt *Statement) GetLookup() (bson.D, error) {
 	if stmt.JoinTable == "" {
 		return bson.D{}, nil
@@ -70,6 +74,8 @@ func (stmt *Statement) GetLookup() (bson.D, error) {
 	}, nil
 }
 
+// ToMongoAggregate gets the Pipeline representing an aggregation for a
+// Statement.
 func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 	if !stmt.IsAggregate() {
 		return mongo.Pipeline{}, fmt.Errorf("invalid statement for aggregation")

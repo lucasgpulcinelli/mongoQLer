@@ -7,6 +7,11 @@ import (
 	"text/scanner"
 )
 
+// The parser is implemented as a recursive descent parser. All rules are
+// described in this file via comments in extended Backus-Naur form (mostly).
+
+// Parse parses an SQL string and returns the statement that describes it.
+//
 // Parse -> SelectStmt FromStmt OptJoinStmt OptWhereStmt
 func Parse(sql string) (*Statement, error) {
 	l := NewLexer(strings.NewReader(sql))
@@ -40,6 +45,9 @@ func Parse(sql string) (*Statement, error) {
 	return stmt, nil
 }
 
+// ParseBoolExpr parses a boolean expression only, returning the describing
+// BooleanExpression.
+//
 // ParseBoolExpr -> BoolExpr
 func ParseBoolExpr(sql string) (BooleanExpression, error) {
 	l := NewLexer(strings.NewReader(sql))
@@ -223,6 +231,7 @@ func BoolExpr(l *Lexer, be *BooleanExpression) bool {
 	}
 }
 
+// GetValue obtains an sql value from a string as an int, nil or string.
 func GetValue(s string) any {
 	if strings.ToUpper(s) == "NULL" {
 		return nil
@@ -240,8 +249,7 @@ func GetValue(s string) any {
 	return s
 }
 
-// CompExpr -> <ID> CompOp <ID>
-// CompExpr -> <ID> IS (<NOT> | eps) <NULL>
+// SimpleCompExpr -> <ID> CompOp <ID> | <ID> <IS> (<NOT> | eps) <NULL>
 func SimpleCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
 	comp := &Comparision{}
 	comp.Id = id
@@ -281,7 +289,7 @@ func SimpleCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
 	return true
 }
 
-// CompExpr -> <ID> (<NOT> | eps) <IN> <(> ValueList <)>
+// InCompExpr -> <ID> (<NOT> | eps) <IN> <(> ValueList <)>
 // ValueList -> <ID> { <,> <ID> }
 func InCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
 	incomp := &InComparision{}
@@ -334,7 +342,7 @@ func InCompExpr(l *Lexer, be *BooleanExpression, id string) bool {
 	return true
 }
 
-// CompExpr -> <(> BoolExpr <)>
+// CompExpr -> <(> BoolExpr <)> | InCompExpr | SimpleCompExpr
 func CompExpr(l *Lexer, be *BooleanExpression) bool {
 
 	if l.Token == '(' {

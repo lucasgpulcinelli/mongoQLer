@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// GetFindSelect gets the bson representing the find key selection document.
 func (stmt *Statement) GetFindSelect() (bson.D, error) {
 	if len(stmt.SelectColumn) == 0 {
 		return bson.D{}, nil
@@ -26,6 +27,8 @@ func (stmt *Statement) GetFindSelect() (bson.D, error) {
 	return ret, nil
 }
 
+// ToMongoFind gets the bsons representing a find for a statement. The first
+// document is the filter and the second is the key selection.
 func (stmt *Statement) ToMongoFind() (bson.D, bson.D, error) {
 	if stmt.IsAggregate() {
 		return bson.D{}, bson.D{}, fmt.Errorf("invalid statement for find")

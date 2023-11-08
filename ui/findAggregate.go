@@ -17,6 +17,8 @@ var (
 	mongoFAEntry        *widget.Entry
 )
 
+// bsonToString transforms a bson to a string and treats erros using the UI
+// popup.
 func bsonToString(a bson.D) string {
 	bts, err := bson.MarshalExtJSON(a, false, false)
 	if err != nil {
@@ -27,7 +29,10 @@ func bsonToString(a bson.D) string {
 	return string(bts)
 }
 
+// findAggregateButtonFunc executes the SQL to find or aggregate functionality.
 func findAggregateButtonFunc() {
+
+	// first, parse the SQL
 	stmt, err := sqlparser.Parse(sqlFAEntry.Text)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
@@ -35,12 +40,14 @@ func findAggregateButtonFunc() {
 	}
 
 	if stmt.IsAggregate() {
+		// get the aggregation from the statement
 		mongoResult, err := stmt.ToMongoAggregate()
 		if err != nil {
 			errorPopUp(err, mainWindow.Canvas())
 			return
 		}
 
+		// and format it for the final text output
 		out := "[\n"
 		for _, bs := range mongoResult {
 			out += bsonToString(bs) + ",\n"
@@ -54,12 +61,16 @@ func findAggregateButtonFunc() {
 			fmt.Sprint("db.", stmt.FromTable, ".aggregate(", out, "\n])"),
 		)
 	} else {
+		// if the statement is a find
+
+		// get the find and selection from the statement
 		find, selection, err := stmt.ToMongoFind()
 		if err != nil {
 			errorPopUp(err, mainWindow.Canvas())
 			return
 		}
 
+		// and format it for the final text output
 		findJson := bsonToString(find)
 		selectionJson := bsonToString(selection)
 
@@ -70,6 +81,8 @@ func findAggregateButtonFunc() {
 	}
 }
 
+// newFindAggregate generates the main SQL query to find or aggregate mongoDB
+// query. It takes the SQL text and outputs the mongoDB in another text area.
 func newFindAggregate() fyne.CanvasObject {
 	findAggregateButton = widget.NewButton("convert", findAggregateButtonFunc)
 

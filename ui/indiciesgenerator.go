@@ -16,7 +16,8 @@ var (
 	mongoIGEntry            *widget.Entry
 )
 
-// indiciesGeneratorButton executes the indicies generator button functionality
+// indiciesGeneratorButton executes the indicies generator button
+// functionality.
 func indiciesGeneratorButtonFunc() {
 	// get all the unique entries from oracle
 	uniques, err := oracleManager.GetUniques(oracleConn)
