@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Login logs in to a mongoDB database, returning the connection.
 func Login(url, databaseName, user, password string) (*mongo.Database, error) {
 	credential := options.Credential{
 		AuthSource: databaseName,

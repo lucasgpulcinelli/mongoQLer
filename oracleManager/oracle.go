@@ -7,6 +7,7 @@ import (
 	_ "github.com/sijms/go-ora/v2"
 )
 
+// Login logs in to a oracle database, returning the connection.
 func Login(url, user, password string) (*sql.DB, error) {
 	conn, err := sql.Open(
 		"oracle",
@@ -25,6 +26,8 @@ func Login(url, user, password string) (*sql.DB, error) {
 	return conn, nil
 }
 
+// GetPrimaryKeys gets all the primary keys in the databse in a map form taking
+// the table name and returning all the column names that are primary keys.
 func GetPrimaryKeys(db *sql.DB) (map[string][]string, error) {
 	pks := map[string][]string{}
 

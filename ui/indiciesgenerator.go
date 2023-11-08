@@ -16,13 +16,16 @@ var (
 	mongoIGEntry            *widget.Entry
 )
 
+// indiciesGeneratorButton executes the indicies generator button functionality
 func indiciesGeneratorButtonFunc() {
+	// get all the unique entries from oracle
 	uniques, err := oracleManager.GetUniques(oracleConn)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return
 	}
 
+	// for each unique, convert it to a document and add an createIndex for it
 	s := ""
 	for _, un := range uniques {
 		bs := bson.D{}
@@ -38,6 +41,8 @@ func indiciesGeneratorButtonFunc() {
 	mongoIGEntry.SetText(s)
 }
 
+// newIndiciesGenerator generates the main indicies generator UI. It generates
+// all the indicies for a mongoDB database from UNIQUE constraints from oracle.
 func newIndiciesGenerator() fyne.CanvasObject {
 
 	indiciesGeneratorButton = widget.NewButton("generate",
