@@ -12,14 +12,15 @@ type UniqueEntry struct {
 // GetUniques obtains all the unique constraints in the database as an array.
 func GetUniques(db *sql.DB) ([]UniqueEntry, error) {
 
-	// get all tables and columns that are of constraint type unique, ordering
-	// by table to make sure when we change the table we are done with it
+	// get all constraint names, tables and columns that are of constraint type
+	// unique, ordering by constraint name to make it easier to differentiate
+	// old from new UniqueEntries.
 	s := `
-    SELECT C.TABLE_NAME, CC.COLUMN_NAME
+    SELECT C.CONSTRAINT_NAME, C.TABLE_NAME, CC.COLUMN_NAME
     FROM USER_CONSTRAINTS C
       JOIN USER_CONS_COLUMNS CC ON CC.CONSTRAINT_NAME = C.CONSTRAINT_NAME
     WHERE C.CONSTRAINT_TYPE = 'U'
-    ORDER BY C.TABLE_NAME
+    ORDER BY C.CONSTRAINT_NAME
   `
 
 	rows, err := db.Query(s)
@@ -28,34 +29,34 @@ func GetUniques(db *sql.DB) ([]UniqueEntry, error) {
 	}
 
 	result := []UniqueEntry{}
-	tableNamePrev := ""
+	constraintNamePrev := ""
 
 	// for each tuple
 	for rows.Next() {
-		tableName, columnName := "", ""
+		var constraintName, tableName, columnName string
 
-		// scan the table and column names
-		err = rows.Scan(&tableName, &columnName)
+		// scan the constraint, table and column names
+		err = rows.Scan(&constraintName, &tableName, &columnName)
 		if err != nil {
 			return nil, err
 		}
 
-		// if we are in the same table, the unique constraint is the same, so
+		// if we are in the same constraint, the unique constraint is the same, so
 		// append it to the existing entry
-		if tableName == tableNamePrev {
+		if constraintName == constraintNamePrev {
 			result[len(result)-1].Columns = append(
 				result[len(result)-1].Columns, columnName,
 			)
 			continue
 		}
 
-		// if not, we are in a new table, so create a UniqueEntry for it
+		// if not, we are in a new unique, so create a UniqueEntry for it
 		result = append(
 			result,
 			UniqueEntry{Table: tableName, Columns: []string{columnName}},
 		)
 
-		tableNamePrev = tableName
+		constraintNamePrev = constraintName
 	}
 
 	err = rows.Close()
