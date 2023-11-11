@@ -20,7 +20,7 @@ var (
 // bsonToString transforms a bson to a string and treats erros using the UI
 // popup.
 func bsonToString(a bson.D) string {
-	bts, err := bson.MarshalExtJSON(a, false, false)
+	bts, err := bson.MarshalExtJSONIndent(a, false, false, " ", " ")
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
 		return "{}"

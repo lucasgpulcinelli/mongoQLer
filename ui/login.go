@@ -134,14 +134,7 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
-		var constraint string
-		for _, ref := range referencesNow {
-			if constraint != ref.ConstraintName {
-				constraint = ref.ConstraintName
-				// and set them as checkbox options in one of the tabs
-				embedSelections.Add(widget.NewCheck(constraint, func(_ bool) {}))
-			}
-		}
+		initReferences(referencesNow)
 
 		// get all primary keys and prepare the key manager
 		err = keyManager.InitPrimaryKeys(oracleConn)

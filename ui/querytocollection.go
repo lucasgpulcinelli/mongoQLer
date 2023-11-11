@@ -39,7 +39,7 @@ func queryButtonFunc() {
 
 	// generate the collection from the query
 	docs, err := tableToCollection.GetCollection(oracleConn, rows, "",
-		[]oracleManager.Reference{},
+		[]oracleManager.Reference{}, []oracleManager.Reference{},
 	)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())

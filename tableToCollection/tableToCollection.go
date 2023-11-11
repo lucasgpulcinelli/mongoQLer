@@ -10,9 +10,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+func anypToAny(v []any) []any {
+	vv := []any{}
+	for _, vp := range v {
+		vv = append(vv, *(vp.(*any)))
+	}
+
+	return vv
+}
+
 // GetCollection generates, based on an oracle database connection, a series of
 // documents with the data from a table or query. It will embed all references
-// in the embeds array with the whole document related to the reference.
+// in the embeds* arrays with the whole document related to the reference.
 // This function takes in a database connection, an open query with data to be
 // turned into the document, the table related to the query, and the list of
 // references that should be embed.
@@ -20,7 +29,8 @@ import (
 // This function does recursion, and does not check if the embed references
 // loop back to an initial table in order to stop infinite recursion.
 func GetCollection(
-	db *sql.DB, rows *sql.Rows, table string, embeds []oracleManager.Reference,
+	db *sql.DB, rows *sql.Rows, table string,
+	embedsTo, embedsFrom []oracleManager.Reference,
 ) ([]bson.D, error) {
 
 	result := []bson.D{}
@@ -44,8 +54,10 @@ func GetCollection(
 			return nil, err
 		}
 
+		vv := anypToAny(vs)
+
 		// and create the document with these values
-		doc, err := writeDocument(db, table, embeds, cols, vs)
+		doc, err := writeDocument(db, table, embedsTo, embedsFrom, cols, vv)
 		if err != nil {
 			return nil, err
 		}
@@ -63,8 +75,8 @@ func GetCollection(
 // All primary keys in the tuple will be converted to a sub document in the
 // "_id" field.
 func writeDocument(
-	db *sql.DB, table string, embeds []oracleManager.Reference, cols []string,
-	vs []any,
+	db *sql.DB, table string, embedsTo, embedsFrom []oracleManager.Reference,
+	cols []string, vs []any,
 ) (bson.D, error) {
 
 	// the final document
@@ -75,8 +87,8 @@ func writeDocument(
 	// map to determine if the column provided is a reference
 	refCols := map[string]bool{}
 
-	// for each embedding reference
-	for _, embed := range embeds {
+	// for each embedding reference that we make the reference to
+	for _, embed := range embedsTo {
 		// if the reference does not relate to us, ignore it
 		if embed.TableReferencer != table {
 			continue
@@ -91,19 +103,47 @@ func writeDocument(
 
 			for i, col := range cols {
 				if col == colRef {
-					// note that this wierd pointer conversion needs to happen because
-					// to read data using rows.Scan we need an array of pointers and
-					// to query data with db.Query using parameters we need an array of
-					// values.
 
-					vsRef = append(vsRef, *(vs[i].(*any)))
+					vsRef = append(vsRef, vs[i])
 					break
 				}
 			}
 		}
 
 		// generate the subdocument with the reference value
-		subDoc, err := embedReference(db, embeds, embed, vsRef)
+		subDoc, err := embedReference(db, embedsTo, embedsFrom, embed, vsRef, true)
+		if err != nil {
+			return nil, err
+		}
+
+		// and add it to our own document, generating the embedding
+		doc = append(doc, bson.E{Key: embed.ConstraintName, Value: subDoc})
+	}
+
+	// for each embedding reference that we receive the reference from
+	for _, embed := range embedsFrom {
+		// if the reference does not relate to us, ignore it
+		if embed.TableReferenced != table {
+			continue
+		}
+
+		vsRef := []any{}
+		for _, colRef := range embed.ColumnReferenced {
+
+			for i, col := range cols {
+				if col == colRef {
+					// same conversion as before
+
+					vsRef = append(vsRef, vs[i])
+					break
+				}
+			}
+		}
+
+		// generate the subdocument with the reference value
+		subDoc, err := embedReference(db, embedsTo, embedsFrom, embed, vsRef,
+			false,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -136,9 +176,9 @@ func writeDocument(
 // embedReference creates a document containing matching data from a reference
 // with certain tuple values
 func embedReference(
-	db *sql.DB, embeds []oracleManager.Reference, ref oracleManager.Reference,
-	vs []any,
-) (bson.D, error) {
+	db *sql.DB, embedsTo, embedsFrom []oracleManager.Reference,
+	ref oracleManager.Reference, vs []any, isReferenceTo bool,
+) (any, error) {
 
 	// if any value in the tuple is null, foreign key references do not apply,
 	// so return a null reference
@@ -148,10 +188,21 @@ func embedReference(
 		}
 	}
 
-	// create the query for getting the matching reference
-	s := "SELECT * FROM " + ref.TableReferenced + " WHERE "
+	// first, determine our tables and columns based on our type of reference
+	var tableS string
+	var columnsS []string
+	if isReferenceTo {
+		tableS = ref.TableReferenced
+		columnsS = ref.ColumnReferenced
+	} else {
+		tableS = ref.TableReferencer
+		columnsS = ref.ColumnReferencer
+	}
 
-	for i, colName := range ref.ColumnReferenced {
+	// create the query for getting the matching reference
+	s := "SELECT * FROM " + tableS + " WHERE "
+
+	for i, colName := range columnsS {
 		s += colName + " = :" + strconv.FormatInt(int64(i), 10) + " AND "
 	}
 
@@ -161,10 +212,6 @@ func embedReference(
 	rows, err := db.Query(s, vs...)
 	if err != nil {
 		return nil, err
-	}
-
-	if !rows.Next() {
-		return nil, fmt.Errorf("embed query returned no data")
 	}
 
 	columns, err := rows.Columns()
@@ -178,14 +225,59 @@ func embedReference(
 		vsOut[i] = new(any)
 	}
 
-	// scan all columns
-	err = rows.Scan(vsOut...)
-	if err != nil {
-		return nil, err
+	if isReferenceTo {
+		if !rows.Next() {
+			return nil, fmt.Errorf("embed query returned no data")
+		}
+
+		// scan all columns
+		err = rows.Scan(vsOut...)
+		if err != nil {
+			return nil, err
+		}
+
+		// if we are referencing some table, we will only have one object embedded,
+		// so only one tuple is acceptable
+		if rows.Next() {
+			return nil, fmt.Errorf("embed query returned more than one tuple")
+		}
+
+		err = rows.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		vvOut := anypToAny(vsOut)
+
+		// return a new document with the data from these tuples. If there are
+		// any references that should be embed, this function will call
+		// embedReference back, making the root of the embedding recursion.
+		return writeDocument(
+			db, ref.TableReferenced, embedsTo, embedsFrom, columns, vvOut,
+		)
+
 	}
 
-	if rows.Next() {
-		return nil, fmt.Errorf("embed query returned more than one tuple")
+	subDocs := []bson.D{}
+
+	for rows.Next() {
+		// scan all columns
+		err = rows.Scan(vsOut...)
+		if err != nil {
+			return nil, err
+		}
+
+		vvOut := anypToAny(vsOut)
+
+		doc, err := writeDocument(db, ref.TableReferencer, embedsTo, embedsFrom,
+			columns, vvOut,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		subDocs = append(subDocs, doc)
 	}
 
 	err = rows.Close()
@@ -193,10 +285,5 @@ func embedReference(
 		return nil, err
 	}
 
-	// and return a new document with the data from these tuples. If there are
-	// any references that should be embed, this function will call
-	// embedReference back, making the root of the embedding recursion.
-	return writeDocument(
-		db, ref.TableReferenced, embeds, columns, vsOut,
-	)
+	return subDocs, nil
 }

@@ -19,6 +19,42 @@ var (
 	referencesNow         []oracleManager.Reference
 )
 
+func initReferences(refs []oracleManager.Reference) {
+	i := 0
+	var constraint string
+	for _, ref := range refs {
+		if constraint == ref.ConstraintName {
+			continue
+		}
+
+		constraint = ref.ConstraintName
+		// and set them as checkbox options in one of the tabs
+		j := i
+		embedSelections.Add(container.NewHBox(
+			widget.NewCheck("", func(set bool) {
+				if !set {
+					return
+				}
+
+				cont := embedSelections.Objects[j].(*fyne.Container)
+				ck := cont.Objects[1].(*widget.Check)
+				ck.SetChecked(false)
+			}),
+			widget.NewCheck(constraint, func(set bool) {
+				if !set {
+					return
+				}
+
+				cont := embedSelections.Objects[j].(*fyne.Container)
+				ck := cont.Objects[0].(*widget.Check)
+				ck.SetChecked(false)
+			}),
+		))
+		i++
+	}
+
+}
+
 // tableCollectionButtonFunc executes the table to collection button
 // functionality.
 func tableCollectionButtonFunc() {
@@ -27,21 +63,19 @@ func tableCollectionButtonFunc() {
 	}
 
 	// first, see wich references should be embedded based on the check boxes
-	embedRefs := []oracleManager.Reference{}
+	embedToRefs := []oracleManager.Reference{}
+	embedFromRefs := []oracleManager.Reference{}
 	for i, ref := range referencesNow {
-		checkBox, ok := embedSelections.Objects[i].(*widget.Check)
-		if !ok {
-			errorPopUp(fmt.Errorf("embedSelections has wrong widget types"),
-				mainWindow.Canvas(),
-			)
-			return
-		}
+		cont := embedSelections.Objects[i].(*fyne.Container)
 
-		if !checkBox.Checked {
-			continue
-		}
+		ckFrom := cont.Objects[0].(*widget.Check)
+		ckTo := cont.Objects[1].(*widget.Check)
 
-		embedRefs = append(embedRefs, ref)
+		if ckFrom.Checked {
+			embedFromRefs = append(embedFromRefs, ref)
+		} else if ckTo.Checked {
+			embedToRefs = append(embedToRefs, ref)
+		}
 	}
 
 	// execute the main query to pass to the GetCollection function
@@ -53,7 +87,7 @@ func tableCollectionButtonFunc() {
 
 	// get all documents to be added to the new collection
 	docs, err := tableToCollection.GetCollection(oracleConn, rows,
-		tcSelection.Selected, embedRefs,
+		tcSelection.Selected, embedToRefs, embedFromRefs,
 	)
 	if err != nil {
 		errorPopUp(err, mainWindow.Canvas())
@@ -89,7 +123,7 @@ func tableCollectionButtonFunc() {
 // oracle.
 func newTableToCollection() fyne.CanvasObject {
 	l := widget.NewLabel("convert an oracle table to a mongoDB collection")
-	l2 := widget.NewLabel("references to embed")
+	l2 := widget.NewLabel("references to embed as arrays / objects")
 
 	tableCollectionButton = widget.NewButton("convert",
 		tableCollectionButtonFunc,
@@ -115,7 +149,7 @@ func newTableToCollection() fyne.CanvasObject {
 		container.NewHSplit(
 			container.NewBorder(tcSelection, nil, nil, nil,
 				container.NewBorder(container.NewCenter(l2), nil, nil, nil,
-					container.NewVScroll(embedSelections),
+					container.NewVScroll(container.NewCenter(embedSelections)),
 				),
 			),
 			mongoTCEntry,
