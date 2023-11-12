@@ -25,7 +25,10 @@ func Login(url, databaseName, user, password string) (*mongo.Database, error) {
 	db := client.Database(databaseName)
 
 	var result bson.M
-	err = db.RunCommand(context.TODO(), bson.D{{"ping", 1}}).Decode(&result)
+	err = db.RunCommand(
+		context.TODO(),
+		bson.D{{Key: "ping", Value: 1}},
+	).Decode(&result)
 
 	if err != nil {
 		return nil, err

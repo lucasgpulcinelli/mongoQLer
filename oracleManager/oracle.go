@@ -36,6 +36,8 @@ func Login(url, user, password string) (*sql.DB, error) {
 	return conn, nil
 }
 
+// initTableColumnsMap initalises the table to columns relation map with the
+// newly created sql connection.
 func initTableColumnsMap(db *sql.DB) error {
 	rows, err := db.Query("SELECT TABLE_NAME, COLUMN_NAME FROM USER_TAB_COLUMNS")
 	if err != nil {

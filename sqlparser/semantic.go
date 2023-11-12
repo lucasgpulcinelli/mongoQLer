@@ -34,7 +34,7 @@ type Statement struct {
 
 // A BooleanExpression represents a parsed boolean comparision that can be
 // converted to a mongoDB bson document given the tables related in the query
-// (for _id management).
+// (for _id management and joined table reference).
 type BooleanExpression interface {
 	GetBson(tableFrom, tableJoin string) (bson.D, error)
 }

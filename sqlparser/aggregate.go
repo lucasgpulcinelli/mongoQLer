@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// GetGroup gets the document paired with the $group operator for a mongDB
+// GetGroup gets the document paired with the $group operator for a mongoDB
 // aggregation for a Statement.
 func (stmt *Statement) GetGroup() (bson.D, error) {
 	hasGroup := false
@@ -25,7 +25,7 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		return bson.D{}, nil
 	}
 
-	result := bson.D{{"_id", nil}}
+	result := bson.D{{Key: "_id", Value: nil}}
 
 	for _, col := range stmt.SelectColumn {
 		var k, v string
@@ -48,10 +48,15 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 			if col.Name != "*" {
 				return bson.D{}, fmt.Errorf("COUNT is only supported as COUNT(*)")
 			}
-			result = append(result, bson.E{"count", bson.D{{k, bson.D{}}}})
+			result = append(result, bson.E{
+				Key:   "count",
+				Value: bson.D{{Key: k, Value: bson.D{}}},
+			})
 			continue
 		}
 
+		// if the column is in the joined table, use table.column, because the
+		// lookup + unwind will make the attribute referenced as that.
 		if oracleManager.TableContainsColumn(stmt.JoinTable, col.Name) {
 			v = "$" + stmt.JoinTable + "." +
 				keyManager.ToMongoId(stmt.JoinTable, col.Name)
@@ -59,7 +64,11 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 			v = "$" + keyManager.ToMongoId(stmt.FromTable, col.Name)
 		}
 
-		result = append(result, bson.E{col.Name, bson.D{{k, v}}})
+		// because the group has a null _id, we cannot use keymanager for col.Name
+		result = append(result, bson.E{
+			Key:   col.Name,
+			Value: bson.D{{Key: k, Value: v}},
+		})
 	}
 
 	return result, nil
@@ -73,10 +82,16 @@ func (stmt *Statement) GetLookup() (bson.D, error) {
 	}
 
 	return bson.D{
-		{"from", stmt.JoinTable},
-		{"localField", keyManager.ToMongoId(stmt.FromTable, stmt.JoinFromAttr)},
-		{"foreignField", keyManager.ToMongoId(stmt.JoinTable, stmt.JoinToAttr)},
-		{"as", stmt.JoinTable},
+		{Key: "from", Value: stmt.JoinTable},
+		{
+			Key:   "localField",
+			Value: keyManager.ToMongoId(stmt.FromTable, stmt.JoinFromAttr),
+		},
+		{
+			Key:   "foreignField",
+			Value: keyManager.ToMongoId(stmt.JoinTable, stmt.JoinToAttr),
+		},
+		{Key: "as", Value: stmt.JoinTable},
 	}, nil
 }
 
@@ -95,8 +110,8 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 	}
 	if len(join) != 0 {
 		result = append(result,
-			bson.D{{"$lookup", join}},
-			bson.D{{"$unwind", "$" + stmt.JoinTable}},
+			bson.D{{Key: "$lookup", Value: join}},
+			bson.D{{Key: "$unwind", Value: "$" + stmt.JoinTable}},
 		)
 	}
 
@@ -105,7 +120,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 		return mongo.Pipeline{}, err
 	}
 
-	result = append(result, bson.D{{"$match", where}})
+	result = append(result, bson.D{{Key: "$match", Value: where}})
 
 	group, err := stmt.GetGroup()
 	if err != nil {
@@ -113,7 +128,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 	}
 
 	if len(group) != 0 {
-		result = append(result, bson.D{{"$group", group}})
+		result = append(result, bson.D{{Key: "$group", Value: group}})
 	}
 
 	selection, err := stmt.GetSelect()
@@ -122,7 +137,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 	}
 
 	if len(selection) != 0 {
-		result = append(result, bson.D{{"$project", selection}})
+		result = append(result, bson.D{{Key: "$project", Value: selection}})
 	}
 
 	return result, nil

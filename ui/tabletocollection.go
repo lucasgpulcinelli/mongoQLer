@@ -19,17 +19,29 @@ var (
 	referencesNow         []oracleManager.Reference
 )
 
+// initReferences initialises the checkboxes in the tableToCollection tab with
+// the references contained in refs.
 func initReferences(refs []oracleManager.Reference) {
 	i := 0
 	var constraint string
+
+	// for each reference
 	for _, ref := range refs {
+		// if we are in the same constraint, ignore it, we already added the
+		// checkbox for it
 		if constraint == ref.ConstraintName {
 			continue
 		}
 
 		constraint = ref.ConstraintName
-		// and set them as checkbox options in one of the tabs
 		j := i
+
+		// add two checkboxes, one to embed the reference as an array in the
+		// referenced collection, and other to embed the reference as an object in
+		// the referencer collection
+
+		// the lambdas used are to make sure both are not checked at the same time,
+		// because doing so would create an infinite recursion.
 		embedSelections.Add(container.NewHBox(
 			widget.NewCheck("", func(set bool) {
 				if !set {

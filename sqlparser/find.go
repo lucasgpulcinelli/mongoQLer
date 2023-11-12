@@ -22,6 +22,9 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 	for _, selection := range stmt.SelectColumn {
 		var k string
 
+		// if the column is in the joined table, we need to reference it as
+		// table.column, because the lookup + unwind will make the reference to
+		// this field as that
 		if oracleManager.TableContainsColumn(stmt.JoinTable, selection.Name) &&
 			selection.GroupFunction == "" {
 
@@ -38,20 +41,26 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 			)
 		}
 
+		// if we are using the _id from the FromTable, mark that we cannot omit
+		// the _id field
 		if len(k) > 3 && k[:3] == "_id" {
 			hasKey = true
 		}
 
+		// the COUNT group funcion is special, we need to use count as the
+		// selection key
 		if k == "*" && strings.ToUpper(selection.GroupFunction) == "COUNT" {
-			ret = append(ret, bson.E{"count", 1})
+			ret = append(ret, bson.E{Key: "count", Value: 1})
 			continue
 		}
 
-		ret = append(ret, bson.E{k, 1})
+		ret = append(ret, bson.E{Key: k, Value: 1})
 	}
 
+	// if we don't have any keys involved, mongoDB will assume we want them, so
+	// explictly mark that we don't want the key
 	if len(ret) != 0 && !hasKey {
-		ret = append(ret, bson.E{"_id", 0})
+		ret = append(ret, bson.E{Key: "_id", Value: 0})
 	}
 
 	return ret, nil

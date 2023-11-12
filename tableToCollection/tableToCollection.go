@@ -10,6 +10,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// anypToAny converts an array of any type containing pointers to an array of
+// any containing the values pointed by them. This function is needed because
+// rows.Scan receives pointers, while db.Query arguments and bson.D keys
+// receives values
 func anypToAny(v []any) []any {
 	vv := []any{}
 	for _, vp := range v {
@@ -54,6 +58,7 @@ func GetCollection(
 			return nil, err
 		}
 
+		// convert the tuple pointers to their values
 		vv := anypToAny(vs)
 
 		// and create the document with these values
@@ -174,7 +179,8 @@ func writeDocument(
 }
 
 // embedReference creates a document containing matching data from a reference
-// with certain tuple values
+// with certain tuple values. It embeds references as objects if isReferenceTo
+// is true and as arrays if it is false.
 func embedReference(
 	db *sql.DB, embedsTo, embedsFrom []oracleManager.Reference,
 	ref oracleManager.Reference, vs []any, isReferenceTo bool,

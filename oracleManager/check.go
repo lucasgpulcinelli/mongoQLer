@@ -12,7 +12,8 @@ type CheckEntry struct {
 // GetChecks obtains all CheckEntries from a connection. It concatenates all
 // the check conditions such that there is only one per table.
 func GetChecks(db *sql.DB) ([]CheckEntry, error) {
-	// obtain the table and search condition for all constraint of type check
+	// obtain the table and search condition for all constraint of type check,
+	// and the columns for all constraints of type primary key
 	s := `
     SELECT C.TABLE_NAME, C.CONSTRAINT_TYPE,
       CC.COLUMN_NAME, C.SEARCH_CONDITION_VC
@@ -33,16 +34,17 @@ func GetChecks(db *sql.DB) ([]CheckEntry, error) {
 
 	// for each check
 	for rows.Next() {
-		var tableName, constraintTpye, ckStr string
+		var tableName, constraintType, ckStr string
 		var columnName, searchCondition sql.NullString
 
 		// scan it
-		err = rows.Scan(&tableName, &constraintTpye, &columnName, &searchCondition)
+		err = rows.Scan(&tableName, &constraintType, &columnName, &searchCondition)
 		if err != nil {
 			return nil, err
 		}
 
-		if constraintTpye == "P" {
+		// if the constraint is a primary key, add a NOT NULL check for it
+		if constraintType == "P" {
 			ckStr = columnName.String + " IS NOT NULL"
 		} else {
 			ckStr = searchCondition.String
