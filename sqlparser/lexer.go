@@ -23,7 +23,7 @@ func NewLexer(rd io.Reader) *Lexer {
 	l.s.Mode = scanner.ScanIdents
 	l.s.Init(rd)
 
-  l.s.Error = func(s *scanner.Scanner, msg string) {}
+	l.s.Error = func(s *scanner.Scanner, msg string) {}
 
 	return l
 }

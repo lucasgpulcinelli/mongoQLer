@@ -30,6 +30,15 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 	for _, col := range stmt.SelectColumn {
 		var k, v string
 
+		// if the column is in the joined table, use table.column, because the
+		// lookup + unwind will make the attribute referenced as that.
+		if oracleManager.TableContainsColumn(stmt.JoinTable, col.Name) {
+			v = "$" + stmt.JoinTable + "." +
+				keyManager.ToMongoId(stmt.JoinTable, col.Name)
+		} else {
+			v = "$" + keyManager.ToMongoId(stmt.FromTable, col.Name)
+		}
+
 		switch strings.ToUpper(col.GroupFunction) {
 		default:
 			return bson.D{}, fmt.Errorf("invalid group function name")
@@ -44,24 +53,32 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		case "MEADIAN":
 			k = "$median"
 		case "COUNT":
-			k = "$count"
-			if col.Name != "*" {
-				return bson.D{}, fmt.Errorf("COUNT is only supported as COUNT(*)")
+			if col.Name == "*" {
+				result = append(result, bson.E{
+					Key:   "count",
+					Value: bson.D{{Key: "$count", Value: bson.D{}}},
+				})
+				continue
 			}
-			result = append(result, bson.E{
-				Key:   "count",
-				Value: bson.D{{Key: k, Value: bson.D{}}},
-			})
-			continue
-		}
 
-		// if the column is in the joined table, use table.column, because the
-		// lookup + unwind will make the attribute referenced as that.
-		if oracleManager.TableContainsColumn(stmt.JoinTable, col.Name) {
-			v = "$" + stmt.JoinTable + "." +
-				keyManager.ToMongoId(stmt.JoinTable, col.Name)
-		} else {
-			v = "$" + keyManager.ToMongoId(stmt.FromTable, col.Name)
+			result = append(result, bson.E{
+				Key: col.Name,
+				Value: bson.D{{
+					Key: "$sum",
+					Value: bson.D{{
+						Key: "$cond",
+						Value: []any{bson.D{{Key: "$ne", Value: []any{
+							v,
+							nil},
+						}},
+							1,
+							0,
+						},
+					}},
+				}},
+			})
+
+			continue
 		}
 
 		// because the group has a null _id, we cannot use keymanager for col.Name
