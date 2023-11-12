@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
+	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -35,7 +36,7 @@ type Statement struct {
 // converted to a mongoDB bson document given the tables related in the query
 // (for _id management).
 type BooleanExpression interface {
-	GetBson(tablesInvolved []string) (bson.D, error)
+	GetBson(tableFrom, tableJoin string) (bson.D, error)
 }
 
 // struct EmptyComparision represents a comparision that is always true
@@ -82,12 +83,12 @@ func (stmt *Statement) IsAggregate() bool {
 }
 
 // GetBson implements the BooleanExpression interface.
-func (e EmptyComparision) GetBson(_ []string) (bson.D, error) {
+func (e EmptyComparision) GetBson(_, _ string) (bson.D, error) {
 	return bson.D{}, nil
 }
 
 // GetBson implements the BooleanExpression interface.
-func (c *Comparision) GetBson(tables []string) (bson.D, error) {
+func (c *Comparision) GetBson(tableFrom, tableJoin string) (bson.D, error) {
 	operator := ""
 
 	switch c.Op {
@@ -107,28 +108,45 @@ func (c *Comparision) GetBson(tables []string) (bson.D, error) {
 		operator = "$lte"
 	}
 
+	var k string
+	if oracleManager.TableContainsColumn(tableJoin, c.Id) {
+		k = tableJoin + "." + keyManager.ToMongoId([]string{tableJoin}, c.Id)
+	} else {
+		k = keyManager.ToMongoId([]string{tableFrom}, c.Id)
+	}
+
 	return bson.D{{
-		keyManager.ToMongoId(tables, c.Id),
-		bson.D{{operator, c.Value}},
+		Key:   k,
+		Value: bson.D{{Key: operator, Value: c.Value}},
 	}}, nil
 
 }
 
 // GetBson implements the BooleanExpression interface.
-func (ic *InComparision) GetBson(tables []string) (bson.D, error) {
+func (ic *InComparision) GetBson(tableFrom, tableJoin string) (bson.D, error) {
 	operator := "$in"
 	if ic.Not {
 		operator = "$nin"
 	}
 
+	var k string
+	if oracleManager.TableContainsColumn(tableJoin, ic.Id) {
+		k = tableJoin + "." + keyManager.ToMongoId([]string{tableJoin}, ic.Id)
+	} else {
+		k = keyManager.ToMongoId([]string{tableFrom}, ic.Id)
+	}
+
 	return bson.D{{
-		keyManager.ToMongoId(tables, ic.Id),
-		bson.D{{operator, ic.Values}},
+		Key:   k,
+		Value: bson.D{{Key: operator, Value: ic.Values}},
 	}}, nil
 }
 
 // GetBson implements the BooleanExpression interface.
-func (bc *BooleanComposite) GetBson(tables []string) (bson.D, error) {
+func (bc *BooleanComposite) GetBson(
+	tableFrom, tableJoin string,
+) (bson.D, error) {
+
 	boolOpStr := ""
 
 	if strings.ToUpper(bc.BoolOp) == "AND" {
@@ -141,7 +159,7 @@ func (bc *BooleanComposite) GetBson(tables []string) (bson.D, error) {
 
 	sexprs := make([]bson.D, 0)
 	for _, se := range bc.SubExpr {
-		bs, err := se.GetBson(tables)
+		bs, err := se.GetBson(tableFrom, tableJoin)
 		if err != nil {
 			return bson.D{}, err
 		}
@@ -149,5 +167,5 @@ func (bc *BooleanComposite) GetBson(tables []string) (bson.D, error) {
 		sexprs = append(sexprs, bs)
 	}
 
-	return bson.D{{boolOpStr, sexprs}}, nil
+	return bson.D{{Key: boolOpStr, Value: sexprs}}, nil
 }

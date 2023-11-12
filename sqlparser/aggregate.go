@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
+	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -27,7 +28,7 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 	result := bson.D{{"_id", nil}}
 
 	for _, col := range stmt.SelectColumn {
-		k := ""
+		var k, v string
 
 		switch strings.ToUpper(col.GroupFunction) {
 		default:
@@ -48,12 +49,17 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 				return bson.D{}, fmt.Errorf("COUNT is only supported as COUNT(*)")
 			}
 			result = append(result, bson.E{"count", bson.D{{k, bson.D{}}}})
+			continue
 		}
 
-		if k != "$count" {
-			v := "$" + keyManager.ToMongoId([]string{stmt.FromTable}, col.Name)
-			result = append(result, bson.E{col.Name, bson.D{{k, v}}})
+		if oracleManager.TableContainsColumn(stmt.JoinTable, col.Name) {
+			v = "$" + stmt.JoinTable + "." +
+				keyManager.ToMongoId([]string{stmt.JoinTable}, col.Name)
+		} else {
+			v = "$" + keyManager.ToMongoId([]string{stmt.FromTable}, col.Name)
 		}
+
+		result = append(result, bson.E{col.Name, bson.D{{k, v}}})
 	}
 
 	return result, nil
@@ -94,7 +100,7 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 		)
 	}
 
-	where, err := stmt.Where.GetBson([]string{stmt.FromTable, stmt.JoinTable})
+	where, err := stmt.Where.GetBson(stmt.FromTable, stmt.JoinTable)
 	if err != nil {
 		return mongo.Pipeline{}, err
 	}

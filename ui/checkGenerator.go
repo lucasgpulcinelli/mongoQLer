@@ -37,7 +37,7 @@ func checkGeneratorButtonFunc() {
 		}
 
 		// get the bson for that check
-		bs, err := be.GetBson([]string{check.Table})
+		bs, err := be.GetBson(check.Table, "")
 		if err != nil {
 			errorPopUp(err, mainWindow.Canvas())
 			return

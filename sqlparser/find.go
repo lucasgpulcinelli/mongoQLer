@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
+	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -19,12 +20,25 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 
 	hasKey := false
 	for _, selection := range stmt.SelectColumn {
-		k := keyManager.ToMongoId(
-			[]string{stmt.FromTable},
-			selection.Name,
-		)
+		var k string
 
-		if strings.Contains(k, "_id") {
+		if oracleManager.TableContainsColumn(stmt.JoinTable, selection.Name) &&
+			selection.GroupFunction == "" {
+
+			k = stmt.JoinTable + "." + keyManager.ToMongoId(
+				[]string{stmt.JoinTable},
+				selection.Name,
+			)
+		} else if selection.GroupFunction != "" {
+			k = selection.Name
+		} else {
+			k = keyManager.ToMongoId(
+				[]string{stmt.FromTable},
+				selection.Name,
+			)
+		}
+
+		if len(k) > 3 && k[:3] == "_id" {
 			hasKey = true
 		}
 
@@ -55,7 +69,7 @@ func (stmt *Statement) ToMongoFind() (bson.D, bson.D, error) {
 		return bson.D{}, bson.D{}, err
 	}
 
-	where, err := stmt.Where.GetBson([]string{stmt.FromTable, stmt.JoinTable})
+	where, err := stmt.Where.GetBson(stmt.FromTable, stmt.JoinTable)
 	if err != nil {
 		return bson.D{}, bson.D{}, err
 	}

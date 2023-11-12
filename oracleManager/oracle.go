@@ -7,6 +7,10 @@ import (
 	_ "github.com/sijms/go-ora/v2"
 )
 
+var (
+	tableColumns map[string][]string
+)
+
 // Login logs in to a oracle database, returning the connection.
 func Login(url, user, password string) (*sql.DB, error) {
 	conn, err := sql.Open(
@@ -23,7 +27,50 @@ func Login(url, user, password string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// initalise the table to columns map
+	err = initTableColumnsMap(conn)
+	if err != nil {
+		return nil, err
+	}
+
 	return conn, nil
+}
+
+func initTableColumnsMap(db *sql.DB) error {
+	rows, err := db.Query("SELECT TABLE_NAME, COLUMN_NAME FROM USER_TAB_COLUMNS")
+	if err != nil {
+		return err
+	}
+
+	tableColumns = map[string][]string{}
+
+	for rows.Next() {
+		var table, column string
+
+		err = rows.Scan(&table, &column)
+		if err != nil {
+			return err
+		}
+
+		tableColumns[table] = append(tableColumns[table], column)
+	}
+
+	return rows.Close()
+}
+
+func TableContainsColumn(table, columnToCheck string) bool {
+	columns, ok := tableColumns[table]
+	if !ok {
+		return false
+	}
+
+	for _, col := range columns {
+		if col == columnToCheck {
+			return true
+		}
+	}
+
+	return false
 }
 
 // GetPrimaryKeys gets all the primary keys in the databse in a map form taking
