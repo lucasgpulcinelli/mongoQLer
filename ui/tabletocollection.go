@@ -134,7 +134,7 @@ func tableCollectionButtonFunc() {
 // a mongosh command to insert a new collection with all the data gathered from
 // oracle.
 func newTableToCollection() fyne.CanvasObject {
-	l := widget.NewLabel("convert an oracle table to a mongoDB collection")
+	l := widget.NewLabel("Convert an oracle table to a mongoDB collection")
 	l2 := widget.NewLabel("references to embed as arrays / objects")
 
 	tableCollectionButton = widget.NewButton("convert",

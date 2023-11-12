@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -31,7 +32,7 @@ func errorPopUp(err error, c fyne.Canvas) {
 // NewMainWindow creates the main application window.
 func NewMainWindow(a fyne.App) {
 	mainWindow = a.NewWindow("Oracle to Mongo Translator")
-	mainWindow.Resize(fyne.NewSize(900, 500))
+	mainWindow.Resize(fyne.NewSize(900, 501))
 
 	// the tabbed panes for each part of the application
 	tabs := container.NewAppTabs(
@@ -43,6 +44,11 @@ func NewMainWindow(a fyne.App) {
 	)
 
 	tabs.SetTabLocation(container.TabLocationLeading)
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		mainWindow.Resize(fyne.NewSize(900, 500))
+	}()
 
 	mainWindow.SetContent(tabs)
 }

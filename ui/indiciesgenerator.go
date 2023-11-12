@@ -31,10 +31,13 @@ func indiciesGeneratorButtonFunc() {
 	for _, un := range uniques {
 		bs := bson.D{}
 		for _, col := range un.Columns {
-			bs = append(bs, bson.E{keyManager.ToMongoId(un.Table, col), 1})
+			bs = append(bs, bson.E{
+				Key:   keyManager.ToMongoId(un.Table, col),
+				Value: 1,
+			})
 		}
 
-		s += fmt.Sprintf("db.%s.createIndex(%s, {unique: true})\n\n",
+		s += fmt.Sprintf("db.%s.createIndex(%s,\n{unique: true}\n)\n",
 			un.Table, bsonToString(bs),
 		)
 	}
@@ -54,7 +57,7 @@ func newIndiciesGenerator() fyne.CanvasObject {
 	mongoIGEntry.SetPlaceHolder("click generate to get the indicies")
 
 	l := widget.NewLabel(
-		"generate mongoDB indicies from an oracle SQL connection",
+		"Generate mongoDB indicies from an oracle SQL connection",
 	)
 
 	return container.NewBorder(

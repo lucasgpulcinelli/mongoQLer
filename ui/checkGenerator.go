@@ -44,12 +44,12 @@ func checkGeneratorButtonFunc() {
 		}
 
 		// generate the complete validator bson
-		bscomplete := bson.D{{"collMod", check.Table},
-			{"validator", bs}, {"validationAction", "error"},
+		bscomplete := bson.D{{Key: "collMod", Value: check.Table},
+			{Key: "validator", Value: bs}, {Key: "validationAction", Value: "error"},
 		}
 
 		// and concatenate it for the final text output
-		s += fmt.Sprintf("db.runCommand(%s)\n\n", bsonToString(bscomplete))
+		s += fmt.Sprintf("db.runCommand(%s)\n", bsonToString(bscomplete))
 	}
 
 	mongoCGEntry.SetText(s)
@@ -67,7 +67,7 @@ func newCheckGenerator() fyne.CanvasObject {
 	mongoCGEntry.SetPlaceHolder("click generate to get the validators")
 
 	l := widget.NewLabel(
-		"generate mongoDB validators from an oracle SQL connection",
+		"Generate mongoDB validators from an oracle SQL connection",
 	)
 
 	return container.NewBorder(
