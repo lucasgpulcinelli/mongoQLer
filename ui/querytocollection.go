@@ -20,8 +20,11 @@ var (
 
 // queryButtonFunc executes the query to collection button functionality
 func queryButtonFunc() {
+	var collection string
 	if queryNameEntry.Text == "" {
-		return
+		collection = "query"
+	} else {
+		collection = queryNameEntry.Text
 	}
 
 	// first, remove the ; from the query because oracleConn.Query cannot have
@@ -53,7 +56,7 @@ func queryButtonFunc() {
 	}
 
 	// and write the result in the mongoQCEntry
-	s := fmt.Sprintf("db.%s.insertMany([\n", queryNameEntry.Text)
+	s := fmt.Sprintf("db.%s.insertMany([\n", collection)
 	i := 0
 	for _, doc := range docs {
 		s += bsonToString(doc) + ",\n"

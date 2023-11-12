@@ -29,8 +29,9 @@ func errorPopUp(err error, c fyne.Canvas) {
 }
 
 // NewMainWindow creates the main application window.
-func NewMainWindow(a fyne.App) fyne.Window {
+func NewMainWindow(a fyne.App) {
 	mainWindow = a.NewWindow("Oracle to Mongo Translator")
+	mainWindow.Resize(fyne.NewSize(900, 500))
 
 	// the tabbed panes for each part of the application
 	tabs := container.NewAppTabs(
@@ -44,7 +45,4 @@ func NewMainWindow(a fyne.App) fyne.Window {
 	tabs.SetTabLocation(container.TabLocationLeading)
 
 	mainWindow.SetContent(tabs)
-	mainWindow.Resize(fyne.NewSize(900, 500))
-
-	return mainWindow
 }

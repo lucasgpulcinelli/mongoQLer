@@ -1,30 +1,21 @@
 package main
 
 import (
-	"context"
-
 	"fyne.io/fyne/v2/app"
 	"github.com/lucasgpulcinelli/mongoQLer/ui"
 )
 
 func main() {
 	a := app.New()
-	wMain := ui.NewMainWindow(a)
-	wLogin := ui.NewLoginWindow(a, wMain)
+	wLogin := ui.NewLoginWindow(a)
 
 	wLogin.Show()
 	a.Run()
 
-	// during the exit phase of the application, close the connections
-	orConn, monConn := ui.GetConnections()
-	if orConn != nil {
-		err := orConn.Close()
-		if err != nil {
-			panic(err)
-		}
-	}
-	if monConn != nil {
-		err := monConn.Client().Disconnect(context.TODO())
+	// during the exit phase of the application, close the connection
+	conn := ui.GetConnections()
+	if conn != nil {
+		err := conn.Close()
 		if err != nil {
 			panic(err)
 		}

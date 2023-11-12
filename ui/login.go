@@ -1,40 +1,35 @@
 package ui
 
 import (
-	"context"
 	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
-	"github.com/lucasgpulcinelli/mongoQLer/mongoManager"
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 
 	"database/sql"
-
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
 	oracleConn *sql.DB
-	mongoConn  *mongo.Database
 )
 
-// GetConnections gets both database connections. Before the login window
-// closes both connections are nil.
-func GetConnections() (*sql.DB, *mongo.Database) {
-	return oracleConn, mongoConn
+// GetConnections gets the oracle database connection. Before the login window
+// closes the connection is nil.
+func GetConnections() *sql.DB {
+	return oracleConn
 }
 
-// NewLoginWindow creates the login window for connecting with databases.
+// NewLoginWindow creates the login window for connecting with the database.
 // The main window will be activated once the login flow is complete.
 // The application uses as initial text the values from some environment
 // variables, such that if a .env file is created and sourced, it is easier to
 // rerun the application multiple times.
-func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
-	w := a.NewWindow("Login to Oracle and MongoDB")
-	w.Resize(fyne.NewSize(500, 500))
+func NewLoginWindow(a fyne.App) fyne.Window {
+	w := a.NewWindow("Login to Oracle")
+	w.Resize(fyne.NewSize(500, 300))
 
 	oracleURL := widget.NewEntry()
 	s, ok := os.LookupEnv("ORACLE_URL")
@@ -57,34 +52,6 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 	}
 	oraclePass.SetText(s)
 
-	mongoURL := widget.NewEntry()
-	s, ok = os.LookupEnv("MONGO_URL")
-	if !ok {
-		s = "URL"
-	}
-	mongoURL.SetText(s)
-
-	mongoDBName := widget.NewEntry()
-	s, ok = os.LookupEnv("MONGO_DB_NAME")
-	if !ok {
-		s = "DB Name"
-	}
-	mongoDBName.SetText(s)
-
-	mongoUser := widget.NewEntry()
-	s, ok = os.LookupEnv("MONGO_USER")
-	if !ok {
-		s = "User"
-	}
-	mongoUser.SetText(s)
-
-	mongoPass := widget.NewPasswordEntry()
-	s, ok = os.LookupEnv("MONGO_PASSWORD")
-	if !ok {
-		s = "Password"
-	}
-	mongoPass.SetText(s)
-
 	// the button that will execute the login functionality
 	b := widget.NewButton("login", func() {
 		var err error
@@ -102,30 +69,7 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
-		if mongoConn != nil {
-			mongoConn.Client().Disconnect(context.TODO())
-		}
-
-		// log in to mongo
-		mongoConn, err = mongoManager.Login(mongoURL.Text, mongoDBName.Text,
-			mongoUser.Text, mongoPass.Text,
-		)
-		if err != nil {
-			errorPopUp(err, w.Canvas())
-			return
-		}
-
 		// initialise some oracle metadata:
-
-		// get all table names
-		tables, err := oracleManager.GetTables(oracleConn)
-		if err != nil {
-			errorPopUp(err, w.Canvas())
-			return
-		}
-
-		// and set them as options in one of the tabs
-		tcSelection.SetOptions(tables)
 
 		// get all foreign key references
 		referencesNow, err = oracleManager.GetReferences(oracleConn)
@@ -134,8 +78,6 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
-		initReferences(referencesNow)
-
 		// get all primary keys and prepare the key manager
 		err = keyManager.InitPrimaryKeys(oracleConn)
 		if err != nil {
@@ -143,8 +85,20 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 			return
 		}
 
+		// get all table names
+		tables, err := oracleManager.GetTables(oracleConn)
+		if err != nil {
+			errorPopUp(err, w.Canvas())
+			return
+		}
+
+		NewMainWindow(a)
+
+		tcSelection.SetOptions(tables)
+		initReferences(referencesNow)
+
+		mainWindow.Show()
 		w.Close()
-		wMain.Show()
 	})
 
 	content := container.NewVBox(
@@ -156,21 +110,6 @@ func NewLoginWindow(a fyne.App, wMain fyne.Window) fyne.Window {
 		),
 		container.NewBorder(
 			nil, nil, widget.NewLabel("Oracle Password"), nil, oraclePass,
-		),
-
-		widget.NewSeparator(),
-
-		container.NewBorder(
-			nil, nil, widget.NewLabel("MongoDB URL"), nil, mongoURL,
-		),
-		container.NewBorder(
-			nil, nil, widget.NewLabel("MongoDB Database Name"), nil, mongoDBName,
-		),
-		container.NewBorder(
-			nil, nil, widget.NewLabel("MongoDB User"), nil, mongoUser,
-		),
-		container.NewBorder(
-			nil, nil, widget.NewLabel("MongoDB Password"), nil, mongoPass,
 		),
 		b,
 	)
