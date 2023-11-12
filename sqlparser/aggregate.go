@@ -70,7 +70,7 @@ func (stmt *Statement) GetLookup() (bson.D, error) {
 		{"from", stmt.JoinTable},
 		{"localField", keyManager.ToMongoId([]string{stmt.FromTable}, stmt.JoinFromAttr)},
 		{"foreignField", keyManager.ToMongoId([]string{stmt.JoinTable}, stmt.JoinToAttr)},
-		{"as", fmt.Sprintf("%s_lookup", stmt.JoinTable)},
+		{"as", stmt.JoinTable},
 	}, nil
 }
 
@@ -83,20 +83,23 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 
 	result := mongo.Pipeline{}
 
+	join, err := stmt.GetLookup()
+	if err != nil {
+		return mongo.Pipeline{}, err
+	}
+	if len(join) != 0 {
+		result = append(result,
+			bson.D{{"$lookup", join}},
+			bson.D{{"$unwind", "$" + stmt.JoinTable}},
+		)
+	}
+
 	where, err := stmt.Where.GetBson([]string{stmt.FromTable, stmt.JoinTable})
 	if err != nil {
 		return mongo.Pipeline{}, err
 	}
 
 	result = append(result, bson.D{{"$match", where}})
-
-	join, err := stmt.GetLookup()
-	if err != nil {
-		return mongo.Pipeline{}, err
-	}
-	if len(join) != 0 {
-		result = append(result, bson.D{{"$lookup", join}})
-	}
 
 	group, err := stmt.GetGroup()
 	if err != nil {
@@ -105,6 +108,15 @@ func (stmt *Statement) ToMongoAggregate() (mongo.Pipeline, error) {
 
 	if len(group) != 0 {
 		result = append(result, bson.D{{"$group", group}})
+	}
+
+	selection, err := stmt.GetSelect()
+	if err != nil {
+		return mongo.Pipeline{}, err
+	}
+
+	if len(selection) != 0 {
+		result = append(result, bson.D{{"$project", selection}})
 	}
 
 	return result, nil

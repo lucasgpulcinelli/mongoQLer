@@ -166,13 +166,13 @@ func OptJoinStmt(l *Lexer, stmt *Statement) bool {
 		return false
 	}
 
-	stmt.JoinFromAttr = l.Value
+	stmt.JoinToAttr = l.Value
 
 	if !l.Lex() || l.Value != "=" || !l.Lex() {
 		return false
 	}
 
-	stmt.JoinToAttr = l.Value
+	stmt.JoinFromAttr = l.Value
 
 	return l.Lex()
 }
