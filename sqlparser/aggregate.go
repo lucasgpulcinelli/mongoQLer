@@ -54,9 +54,9 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 
 		if oracleManager.TableContainsColumn(stmt.JoinTable, col.Name) {
 			v = "$" + stmt.JoinTable + "." +
-				keyManager.ToMongoId([]string{stmt.JoinTable}, col.Name)
+				keyManager.ToMongoId(stmt.JoinTable, col.Name)
 		} else {
-			v = "$" + keyManager.ToMongoId([]string{stmt.FromTable}, col.Name)
+			v = "$" + keyManager.ToMongoId(stmt.FromTable, col.Name)
 		}
 
 		result = append(result, bson.E{col.Name, bson.D{{k, v}}})
@@ -74,8 +74,8 @@ func (stmt *Statement) GetLookup() (bson.D, error) {
 
 	return bson.D{
 		{"from", stmt.JoinTable},
-		{"localField", keyManager.ToMongoId([]string{stmt.FromTable}, stmt.JoinFromAttr)},
-		{"foreignField", keyManager.ToMongoId([]string{stmt.JoinTable}, stmt.JoinToAttr)},
+		{"localField", keyManager.ToMongoId(stmt.FromTable, stmt.JoinFromAttr)},
+		{"foreignField", keyManager.ToMongoId(stmt.JoinTable, stmt.JoinToAttr)},
 		{"as", stmt.JoinTable},
 	}, nil
 }

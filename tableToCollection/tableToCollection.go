@@ -154,7 +154,7 @@ func writeDocument(
 
 	// for each column
 	for i, name := range cols {
-		if keyManager.IsPk([]string{table}, name) {
+		if keyManager.IsPk(table, name) {
 			// if it is a primary key, add it to the _id document
 			pks = append(pks, bson.E{Key: name, Value: vs[i]})
 		} else if refCols[name] != true {

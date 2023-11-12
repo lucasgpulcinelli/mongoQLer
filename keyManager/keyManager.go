@@ -17,13 +17,11 @@ func InitPrimaryKeys(db *sql.DB) (err error) {
 	return err
 }
 
-// IsPk indicates if a column is a key in any of the tables provided
-func IsPk(tables []string, column string) bool {
-	for _, table := range tables {
-		for _, pkc := range primaryKeys[table] {
-			if pkc == column {
-				return true
-			}
+// IsPk indicates if a column is a key in the table provided
+func IsPk(table string, column string) bool {
+	for _, pkc := range primaryKeys[table] {
+		if pkc == column {
+			return true
 		}
 	}
 
@@ -32,13 +30,11 @@ func IsPk(tables []string, column string) bool {
 
 // ToMongoId converts a column to a mongoDB key for a document, converting the
 // column name to "_id.columnname" if the column is a primary key from oracle
-// in one of the tables provided.
-func ToMongoId(tables []string, column string) string {
-	for _, table := range tables {
-		for _, pkc := range primaryKeys[table] {
-			if pkc == column {
-				return "_id." + column
-			}
+// in the table provided.
+func ToMongoId(table string, column string) string {
+	for _, pkc := range primaryKeys[table] {
+		if pkc == column {
+			return "_id." + column
 		}
 	}
 

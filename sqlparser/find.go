@@ -26,14 +26,14 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 			selection.GroupFunction == "" {
 
 			k = stmt.JoinTable + "." + keyManager.ToMongoId(
-				[]string{stmt.JoinTable},
+				stmt.JoinTable,
 				selection.Name,
 			)
 		} else if selection.GroupFunction != "" {
 			k = selection.Name
 		} else {
 			k = keyManager.ToMongoId(
-				[]string{stmt.FromTable},
+				stmt.FromTable,
 				selection.Name,
 			)
 		}

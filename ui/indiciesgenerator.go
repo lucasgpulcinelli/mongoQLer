@@ -31,7 +31,7 @@ func indiciesGeneratorButtonFunc() {
 	for _, un := range uniques {
 		bs := bson.D{}
 		for _, col := range un.Columns {
-			bs = append(bs, bson.E{keyManager.ToMongoId([]string{un.Table}, col), 1})
+			bs = append(bs, bson.E{keyManager.ToMongoId(un.Table, col), 1})
 		}
 
 		s += fmt.Sprintf("db.%s.createIndex(%s, {unique: true})\n\n",

@@ -110,9 +110,9 @@ func (c *Comparision) GetBson(tableFrom, tableJoin string) (bson.D, error) {
 
 	var k string
 	if oracleManager.TableContainsColumn(tableJoin, c.Id) {
-		k = tableJoin + "." + keyManager.ToMongoId([]string{tableJoin}, c.Id)
+		k = tableJoin + "." + keyManager.ToMongoId(tableJoin, c.Id)
 	} else {
-		k = keyManager.ToMongoId([]string{tableFrom}, c.Id)
+		k = keyManager.ToMongoId(tableFrom, c.Id)
 	}
 
 	return bson.D{{
@@ -131,9 +131,9 @@ func (ic *InComparision) GetBson(tableFrom, tableJoin string) (bson.D, error) {
 
 	var k string
 	if oracleManager.TableContainsColumn(tableJoin, ic.Id) {
-		k = tableJoin + "." + keyManager.ToMongoId([]string{tableJoin}, ic.Id)
+		k = tableJoin + "." + keyManager.ToMongoId(tableJoin, ic.Id)
 	} else {
-		k = keyManager.ToMongoId([]string{tableFrom}, ic.Id)
+		k = keyManager.ToMongoId(tableFrom, ic.Id)
 	}
 
 	return bson.D{{
