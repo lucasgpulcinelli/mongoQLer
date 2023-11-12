@@ -50,8 +50,8 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 			k = "$max"
 		case "AVG":
 			k = "$avg"
-		case "MEADIAN":
-			k = "$median"
+		case "STDDEV":
+			k = "$stdDevSamp"
 		case "COUNT":
 			if col.Name == "*" {
 				result = append(result, bson.E{
