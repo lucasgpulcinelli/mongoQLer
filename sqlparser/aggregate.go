@@ -42,6 +42,8 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		switch strings.ToUpper(col.GroupFunction) {
 		default:
 			return bson.D{}, fmt.Errorf("invalid group function name")
+    case "":
+      continue
 		case "SUM":
 			k = "$sum"
 		case "MIN":
