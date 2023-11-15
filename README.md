@@ -1,10 +1,19 @@
 # MongoQLer
 MongoQLer is a simple graphical application that converts data from an oracle database to a mongoDB one. It was made as the final project for the university discipline of Database Laboratories.
 
+## Capabilities
+MongoQLer implements five functionalities:
+- Converting oracle table tuples to mongoDB collections, enabling the user to embed documents from other collections via foreign key references (both references that the table creates and references where the table is being referenced by another);
+- Generating mongoDB collections from oracle SQL query results;
+- Generating mongoDB indicies for all UNIQUE constraints present in all tables in the oracle connection;
+- Generating mongoDB validators for all CHECK and NOT NULL constraints present in all tables in the oracle connection;
+- Converting simple SQL queries into mongoDB finds and aggregates using a custom made recursive descend parser.
+
+
 ## Made fully by
 - [Lucas Eduardo Gulka Pulcinelli](https://github.com/lucasgpulcinelli)
 
-### How to compile the code
+## How to compile the code
 First, install the go compiler and git, and on linux you will need the opengl and x11 development packages:
 - In debian or ubuntu use `sudo apt install libgl1-mesa-dev xorg-dev golang git`;
 - In fedora or other red hat based systems, use `sudo dnf install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel mesa-libGL-devel libXi-devel libXxf86vm-devel golang git`;
