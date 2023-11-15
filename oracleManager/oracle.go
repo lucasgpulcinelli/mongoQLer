@@ -3,6 +3,7 @@ package oracleManager
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "github.com/sijms/go-ora/v2"
 )
@@ -61,13 +62,13 @@ func initTableColumnsMap(db *sql.DB) error {
 }
 
 func TableContainsColumn(table, columnToCheck string) bool {
-	columns, ok := tableColumns[table]
+	columns, ok := tableColumns[strings.ToUpper(table)]
 	if !ok {
 		return false
 	}
 
 	for _, col := range columns {
-		if col == columnToCheck {
+		if col == strings.ToUpper(columnToCheck) {
 			return true
 		}
 	}

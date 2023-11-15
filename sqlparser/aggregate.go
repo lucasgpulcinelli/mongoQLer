@@ -42,8 +42,8 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		switch strings.ToUpper(col.GroupFunction) {
 		default:
 			return bson.D{}, fmt.Errorf("invalid group function name")
-    case "":
-      continue
+		case "":
+			continue
 		case "SUM":
 			k = "$sum"
 		case "MIN":
@@ -57,14 +57,14 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 		case "COUNT":
 			if col.Name == "*" {
 				result = append(result, bson.E{
-					Key:   "count",
+					Key:   col.GroupFunction + "(*)",
 					Value: bson.D{{Key: "$count", Value: bson.D{}}},
 				})
 				continue
 			}
 
 			result = append(result, bson.E{
-				Key: col.Name,
+				Key: col.GroupFunction + "(" + col.Name + ")",
 				Value: bson.D{{
 					Key: "$sum",
 					Value: bson.D{{
@@ -85,7 +85,7 @@ func (stmt *Statement) GetGroup() (bson.D, error) {
 
 		// because the group has a null _id, we cannot use keymanager for col.Name
 		result = append(result, bson.E{
-			Key:   col.Name,
+			Key:   col.GroupFunction + "(" + col.Name + ")",
 			Value: bson.D{{Key: k, Value: v}},
 		})
 	}

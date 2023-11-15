@@ -2,7 +2,6 @@ package sqlparser
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/lucasgpulcinelli/mongoQLer/keyManager"
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
@@ -22,18 +21,19 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 	for _, selection := range stmt.SelectColumn {
 		var k string
 
-		// if the column is in the joined table, we need to reference it as
-		// table.column, because the lookup + unwind will make the reference to
-		// this field as that
-		if oracleManager.TableContainsColumn(stmt.JoinTable, selection.Name) &&
-			selection.GroupFunction == "" {
+		if selection.GroupFunction != "" {
+			k = selection.GroupFunction + "(" + selection.Name + ")"
+		} else if oracleManager.TableContainsColumn(stmt.JoinTable, selection.Name) {
+			// if the column is in the joined table, we need to reference it as
+			// table.column, because the lookup + unwind will make the reference to
+			// this field as that
 
 			k = stmt.JoinTable + "." + keyManager.ToMongoId(
 				stmt.JoinTable,
 				selection.Name,
 			)
-		} else if selection.GroupFunction != "" {
-			k = selection.Name
+		} else if stmt.IsAggregate() {
+			return bson.D{}, fmt.Errorf("not a single group aggregation")
 		} else {
 			k = keyManager.ToMongoId(
 				stmt.FromTable,
@@ -45,13 +45,6 @@ func (stmt *Statement) GetSelect() (bson.D, error) {
 		// the _id field
 		if len(k) > 3 && k[:3] == "_id" {
 			hasKey = true
-		}
-
-		// the COUNT group funcion is special, we need to use count as the
-		// selection key
-		if k == "*" && strings.ToUpper(selection.GroupFunction) == "COUNT" {
-			ret = append(ret, bson.E{Key: "count", Value: 1})
-			continue
 		}
 
 		ret = append(ret, bson.E{Key: k, Value: 1})

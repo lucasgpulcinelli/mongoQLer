@@ -2,6 +2,7 @@ package keyManager
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/lucasgpulcinelli/mongoQLer/oracleManager"
 )
@@ -19,8 +20,8 @@ func InitPrimaryKeys(db *sql.DB) (err error) {
 
 // IsPk indicates if a column is a key in the table provided
 func IsPk(table string, column string) bool {
-	for _, pkc := range primaryKeys[table] {
-		if pkc == column {
+	for _, pkc := range primaryKeys[strings.ToUpper(table)] {
+		if pkc == strings.ToUpper(column) {
 			return true
 		}
 	}
@@ -32,8 +33,8 @@ func IsPk(table string, column string) bool {
 // column name to "_id.columnname" if the column is a primary key from oracle
 // in the table provided.
 func ToMongoId(table string, column string) string {
-	for _, pkc := range primaryKeys[table] {
-		if pkc == column {
+	for _, pkc := range primaryKeys[strings.ToUpper(table)] {
+		if pkc == strings.ToUpper(column) {
 			return "_id." + column
 		}
 	}
